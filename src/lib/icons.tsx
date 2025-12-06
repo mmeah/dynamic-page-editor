@@ -24,5 +24,3 @@ export const LucideIcon = ({ name, ...props }: { name: string } & LucideProps) =
 
   return <IconComponent {...props} />;
 };
-
-    

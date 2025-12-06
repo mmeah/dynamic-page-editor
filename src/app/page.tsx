@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
 import { EDITOR_PASSWORD, DEFAULT_REST_URL } from '@/lib/config';
 import type { PageElement, ContextMenuData, ElementStatus } from '@/lib/types';
-import { iconList, LucideIcon } from '@/lib/icons';
+import { LucideIcon, iconList } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
 
 export default function HomePage() {
@@ -36,17 +36,23 @@ export default function HomePage() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedElements = localStorage.getItem('pageElements');
-    if (savedElements) {
-      setElements(JSON.parse(savedElements));
-    }
-  }, []);
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/configuration.json');
+        const data = await res.json();
+        setElements(data);
+      } catch (error) {
+        console.error("Failed to load configuration.json", error);
+        toast({
+          variant: "destructive",
+          title: "Failed to load initial configuration",
+          description: "Please make sure configuration.json exists in the public folder.",
+        });
+      }
+    };
+    fetchConfig();
+  }, [toast]);
 
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('pageElements', JSON.stringify(elements));
-    }
-  }, [elements, isMounted]);
 
   const handleEditModeToggle = (checked: boolean) => {
     if (checked && !isAuthenticated) {
@@ -353,7 +359,7 @@ export default function HomePage() {
       <Dialog open={showJsonExport} onOpenChange={setShowJsonExport}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Page Configuration</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Copy this JSON and save it. You can load it later using the "Load Config" button.</p>
+          <p className="text-sm text-muted-foreground">Copy this JSON and save it to `public/configuration.json` to persist your changes.</p>
           <div className="relative">
             <pre className="bg-muted p-4 rounded-md text-sm max-h-[50vh] overflow-auto">
                 <code>{JSON.stringify(elements, null, 2)}</code>
@@ -470,5 +476,3 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
     </Dialog>
   )
 }
-
-    
