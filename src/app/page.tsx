@@ -519,6 +519,12 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
                 <SelectContent>
                   <SelectItem value="'Poppins', sans-serif">Poppins (Headline)</SelectItem>
                   <SelectItem value="'PT Sans', sans-serif">PT Sans (Body)</SelectItem>
+                  <SelectItem value="Arial, Helvetica, sans-serif">Arial</SelectItem>
+                  <SelectItem value="'Times New Roman', Times, serif">Times New Roman</SelectItem>
+                  <SelectItem value="'Courier New', Courier, monospace">Courier New</SelectItem>
+                  <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                  <SelectItem value="Verdana, Geneva, sans-serif">Verdana</SelectItem>
+                  <SelectItem value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</SelectItem>
                 </SelectContent>
               </Select>
           </div>
@@ -530,3 +536,5 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
     </Dialog>
   )
 }
+
+    
