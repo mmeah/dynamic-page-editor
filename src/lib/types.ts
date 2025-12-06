@@ -29,5 +29,6 @@ export interface PageConfig {
   editorPassword?: string;
   pageTitle?: string;
   defaultRestUrl?: string;
+  favicon?: string;
   elements: PageElement[];
 }

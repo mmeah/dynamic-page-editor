@@ -1,7 +1,8 @@
 {
-  "pageTitle": "Dynamic Page Title",
   "editorPassword": "admin",
+  "pageTitle": "My Dynamic Page",
   "defaultRestUrl": "http://security.masjidds.org/cgi-bin/test.py",
+  "favicon": "/favicon.ico",
   "elements": [
     {
       "id": "1765037712481",

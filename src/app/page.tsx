@@ -25,7 +25,7 @@ export default function HomePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  const [config, setConfig] = useState<PageConfig>({ pageTitle: 'Loading...', editorPassword: '', defaultRestUrl: '', elements: [] });
+  const [config, setConfig] = useState<PageConfig>({ pageTitle: 'Loading...', editorPassword: '', defaultRestUrl: '', favicon: '', elements: [] });
   const [contextMenu, setContextMenu] = useState<ContextMenuData>({ visible: false, x: 0, y: 0 });
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [showJsonExport, setShowJsonExport] = useState(false);
@@ -45,7 +45,6 @@ export default function HomePage() {
         }
         const data = await res.json();
         setConfig(data);
-        document.title = data.pageTitle;
       } catch (error) {
         console.error("Failed to load configuration.json", error);
         toast({
@@ -57,6 +56,21 @@ export default function HomePage() {
     };
     fetchConfig();
   }, [toast]);
+
+  useEffect(() => {
+    if (config.pageTitle) {
+      document.title = config.pageTitle;
+    }
+    if (config.favicon) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = config.favicon;
+    }
+  }, [config.pageTitle, config.favicon]);
 
 
   const handleEditModeToggle = (checked: boolean) => {
@@ -154,7 +168,6 @@ export default function HomePage() {
       const parsedConfig = JSON.parse(jsonInput);
       if (parsedConfig && typeof parsedConfig === 'object' && Array.isArray(parsedConfig.elements)) {
         setConfig(parsedConfig);
-        document.title = parsedConfig.pageTitle || 'Dynamic Page';
         setShowJsonImport(false);
         setJsonInput('');
         toast({
