@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React from 'react';
 import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, Upload, ChevronsUpDown, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignVerticalSpaceBetween } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -24,28 +24,28 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Check } from 'lucide-react';
 
 export default function HomePage() {
-  const [isMounted, setIsMounted] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [config, setConfig] = useState<PageConfig>({ elements: [] });
-  const [contextMenu, setContextMenu] = useState<ContextMenuData>({ visible: false, x: 0, y: 0 });
-  const [editingElement, setEditingElement] = useState<PageElement | null>(null);
-  const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
-  const [showJsonExport, setShowJsonExport] = useState(false);
-  const [draggingState, setDraggingState] = useState<{
+  const [isMounted, setIsMounted] = React.useState(false);
+  const [isEditMode, setIsEditMode] = React.useState(false);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [showPasswordPrompt, setShowPasswordPrompt] = React.useState(false);
+  const [passwordInput, setPasswordInput] = React.useState('');
+  const [config, setConfig] = React.useState<PageConfig>({ elements: [] });
+  const [contextMenu, setContextMenu] = React.useState<ContextMenuData>({ visible: false, x: 0, y: 0 });
+  const [editingElement, setEditingElement] = React.useState<PageElement | null>(null);
+  const [selectedElementIds, setSelectedElementIds] = React.useState<string[]>([]);
+  const [showJsonExport, setShowJsonExport] = React.useState(false);
+  const [draggingState, setDraggingState] = React.useState<{
     isDragging: boolean;
     initialPositions: Map<string, { x: number; y: number }>;
     startX: number;
     startY: number;
   } | null>(null);
-  const mainContainerRef = useRef<HTMLDivElement>(null);
+  const mainContainerRef = React.useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const NUDGE_AMOUNT = 1;
 
-  useEffect(() => {
+  React.useEffect(() => {
     setIsMounted(true);
     const fetchConfig = async () => {
       try {
@@ -67,7 +67,7 @@ export default function HomePage() {
     fetchConfig();
   }, [toast]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const pageTitleElement = config.elements.find(el => el.id === 'page-title');
     const pageTitle = pageTitleElement ? pageTitleElement.text : 'Dynamic Page';
 
@@ -124,7 +124,7 @@ export default function HomePage() {
     setContextMenu({ visible: true, x: e.clientX, y: e.clientY, elementId: selectedElementIds.length > 0 ? selectedElementIds[0] : undefined });
   };
 
-  const closeContextMenu = useCallback(() => {
+  const closeContextMenu = React.useCallback(() => {
     setContextMenu({ visible: false, x: 0, y: 0 });
   }, []);
   
@@ -215,11 +215,12 @@ export default function HomePage() {
         newSelectedIds = [...selectedElementIds, id];
       }
     } else {
-      if (!selectedElementIds.includes(id)) {
-        newSelectedIds = [id];
-      } else {
-        newSelectedIds = selectedElementIds;
-      }
+        if (!selectedElementIds.includes(id)) {
+            newSelectedIds = [id];
+        } else {
+            // If it's already selected and we are not holding shift, we might be starting a drag
+            newSelectedIds = selectedElementIds;
+        }
     }
     setSelectedElementIds(newSelectedIds);
   
@@ -274,7 +275,7 @@ export default function HomePage() {
       closeContextMenu();
   }
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+  const handleKeyDown = React.useCallback((e: KeyboardEvent) => {
     if (!isEditMode || selectedElementIds.length === 0 || editingElement) return;
 
     let dx = 0;
@@ -309,10 +310,10 @@ export default function HomePage() {
             selectedElementIds.includes(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
         )
     );
-  }, [isEditMode, selectedElementIds, config.elements, updateElements, editingElement]);
+  }, [isEditMode, selectedElementIds, config.elements, updateElements, editingElement, deleteElement]);
 
 
-  useEffect(() => {
+  React.useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
         window.removeEventListener('keydown', handleKeyDown);
@@ -363,11 +364,10 @@ export default function HomePage() {
       const selectedRects = selectedElementIds.map(id => getElementRect(id)).filter((r): r is NonNullable<typeof r> => !!r);
       if (selectedRects.length < 2) return;
   
-      const anchorRect = selectedRects.find(r => r.id === selectedElementIds[0]);
-      if (!anchorRect) return;
+      const anchorRect = selectedRects[0];
   
       const newElements = config.elements.map(el => {
-          if (!selectedElementIds.includes(el.id)) return el;
+          if (!selectedElementIds.includes(el.id) || el.id === anchorRect.id) return el;
           
           const currentRect = selectedRects.find(item => item.id === el.id);
           if (!currentRect) return el;
@@ -561,7 +561,8 @@ export default function HomePage() {
 }
 
 function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
-  const [formData, setFormData] = useState(element);
+  const [formData, setFormData] = React.useState(element);
+  const [iconSearch, setIconSearch] = React.useState('');
 
   const handleSave = () => {
     onSave(formData);
@@ -581,6 +582,8 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     { value: "Verdana, Geneva, sans-serif", label: "Verdana" },
     { value: "'Trebuchet MS', Helvetica, sans-serif", label: "Trebuchet MS" },
   ];
+
+  const filteredIcons = iconList.filter(iconName => iconName.toLowerCase().includes(iconSearch.toLowerCase()));
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
@@ -617,32 +620,40 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search icons..." />
-                      <CommandEmpty>No icons found.</CommandEmpty>
-                      <CommandGroup>
-                        <ScrollArea className="h-48">
-                          {iconList.map(iconName => (
-                            <CommandItem
-                              key={iconName}
-                              value={iconName}
-                              onSelect={(currentValue) => {
-                                handleChange('icon', currentValue === formData.icon ? '' : currentValue)
-                              }}
-                            >
-                               <LucideIcon name={iconName} className="mr-2 h-4 w-4" />
-                              <span>{iconName}</span>
-                              <Check
-                                className={cn(
-                                  "ml-auto h-4 w-4",
-                                  formData.icon === iconName ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                            </CommandItem>
-                          ))}
-                        </ScrollArea>
-                      </CommandGroup>
-                    </Command>
+                     <div className="p-2">
+                        <Input
+                          placeholder="Search icons..."
+                          value={iconSearch}
+                          onChange={(e) => setIconSearch(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                      <ScrollArea className="h-48">
+                        <div className="grid grid-cols-6 gap-2 p-2">
+                          {filteredIcons.length > 0 ? filteredIcons.map(iconName => (
+                            <TooltipProvider key={iconName}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant={formData.icon === iconName ? "secondary" : "ghost"}
+                                    size="icon"
+                                    onClick={() => {
+                                      handleChange('icon', iconName === formData.icon ? '' : iconName);
+                                    }}
+                                  >
+                                    <LucideIcon name={iconName} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{iconName}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )) : (
+                            <p className="col-span-6 text-center text-sm text-muted-foreground">No icons found.</p>
+                          )}
+                        </div>
+                      </ScrollArea>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -683,3 +694,7 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
+
+    
+
+    
