@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, Upload, ChevronsUpDown } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, Upload, ChevronsUpDown, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignHorizontalSpaceBetween, AlignVerticalSpaceBetween } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -23,8 +23,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check } from 'lucide-react';
 
-const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72];
-
 export default function HomePage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -34,10 +32,18 @@ export default function HomePage() {
   const [config, setConfig] = useState<PageConfig>({ elements: [] });
   const [contextMenu, setContextMenu] = useState<ContextMenuData>({ visible: false, x: 0, y: 0 });
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
+  const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const [showJsonExport, setShowJsonExport] = useState(false);
-  const [draggingElement, setDraggingElement] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const [draggingState, setDraggingState] = useState<{
+    isDragging: boolean;
+    initialPositions: Map<string, { x: number; y: number }>;
+    startX: number;
+    startY: number;
+  } | null>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const NUDGE_AMOUNT = 1;
 
   useEffect(() => {
     setIsMounted(true);
@@ -87,6 +93,7 @@ export default function HomePage() {
       setIsEditMode(checked);
       if (!checked) {
         // Do not reset isAuthenticated when turning edit mode off
+        setSelectedElementIds([]);
       }
     }
   };
@@ -111,14 +118,18 @@ export default function HomePage() {
     e.preventDefault();
     const target = e.target as HTMLElement;
     const elementId = target.closest('[data-element-id]')?.getAttribute('data-element-id');
-    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, elementId: elementId ?? undefined });
+    if (elementId && !selectedElementIds.includes(elementId)) {
+        setSelectedElementIds([elementId]);
+    }
+
+    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, elementId: selectedElementIds.length > 0 ? selectedElementIds[0] : undefined });
   };
 
   const closeContextMenu = useCallback(() => {
     setContextMenu({ visible: false, x: 0, y: 0 });
   }, []);
   
-  const updateElements = (newElements: PageElement[]) => {
+  const updateElements = (newElements: PageElement[], skipHistory = false) => {
     setConfig(prev => ({...prev, elements: newElements}));
   }
 
@@ -149,15 +160,16 @@ export default function HomePage() {
   };
 
   const deleteElement = () => {
-    if (contextMenu.elementId) {
-      updateElements(config.elements.filter(el => el.id !== contextMenu.elementId));
+    if (selectedElementIds.length > 0) {
+      updateElements(config.elements.filter(el => !selectedElementIds.includes(el.id)));
+      setSelectedElementIds([]);
     }
     closeContextMenu();
   };
 
   const openEditModal = () => {
-    if (contextMenu.elementId) {
-      const elementToEdit = config.elements.find(el => el.id === contextMenu.elementId);
+    if (selectedElementIds.length === 1) {
+      const elementToEdit = config.elements.find(el => el.id === selectedElementIds[0]);
       if (elementToEdit) {
         setEditingElement(elementToEdit);
       }
@@ -174,7 +186,7 @@ export default function HomePage() {
     if (isEditMode || !element.url) return;
 
     const updateStatus = (id: string, status: ElementStatus) => {
-      updateElements(config.elements.map(el => (el.id === id ? { ...el, status } : el)));
+      updateElements(config.elements.map(el => (el.id === id ? { ...el, status } : el)), true);
     };
 
     updateStatus(element.id, 'loading');
@@ -195,37 +207,106 @@ export default function HomePage() {
   
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (!isEditMode) return;
-    const element = e.currentTarget as HTMLDivElement;
-    const rect = element.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
-    setDraggingElement({ id, offsetX, offsetY });
+
+    if (e.shiftKey) {
+        setSelectedElementIds(prev => 
+            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+        );
+    } else {
+        if (!selectedElementIds.includes(id)) {
+            setSelectedElementIds([id]);
+        }
+    }
+
+    const initialPositions = new Map();
+    config.elements.forEach(el => {
+        if (selectedElementIds.includes(el.id) || id === el.id) {
+            initialPositions.set(el.id, { x: el.x, y: el.y });
+        }
+    });
+
+    setDraggingState({
+      isDragging: true,
+      initialPositions,
+      startX: e.clientX,
+      startY: e.clientY,
+    });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!draggingElement || !mainContainerRef.current) return;
-    const mainRect = mainContainerRef.current.getBoundingClientRect();
-    let newX = e.clientX - mainRect.left - draggingElement.offsetX;
-    let newY = e.clientY - mainRect.top - draggingElement.offsetY;
+    if (!draggingState || !draggingState.isDragging || !mainContainerRef.current) return;
+    e.preventDefault();
 
-    // Constrain within parent
-    const elementOnPage = document.querySelector(`[data-element-id="${draggingElement.id}"]`);
-    if (!elementOnPage) return;
+    const dx = e.clientX - draggingState.startX;
+    const dy = e.clientY - draggingState.startY;
 
-    const elementWidth = elementOnPage.clientWidth || 100;
-    const elementHeight = elementOnPage.clientHeight || 40;
-
-    newX = Math.max(0, Math.min(newX, mainRect.width - elementWidth));
-    newY = Math.max(0, Math.min(newY, mainRect.height - elementHeight));
-    
     updateElements(
-        config.elements.map(el => (el.id === draggingElement.id ? { ...el, x: newX, y: newY } : el))
+      config.elements.map(el => {
+        const initialPos = draggingState.initialPositions.get(el.id);
+        if (initialPos) {
+          const newX = initialPos.x + dx;
+          const newY = initialPos.y + dy;
+          return { ...el, x: newX, y: newY };
+        }
+        return el;
+      }),
+      true // Skip history for smoother dragging
     );
   };
   
   const handleMouseUp = () => {
-    setDraggingElement(null);
+    if(draggingState?.isDragging) {
+        setDraggingState(null);
+    }
   };
+
+  const handleContainerClick = (e: React.MouseEvent) => {
+      if (e.target === mainContainerRef.current) {
+          setSelectedElementIds([]);
+      }
+      closeContextMenu();
+  }
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isEditMode || selectedElementIds.length === 0) return;
+
+    let dx = 0;
+    let dy = 0;
+
+    switch(e.key) {
+        case 'ArrowUp':
+            dy = -NUDGE_AMOUNT;
+            break;
+        case 'ArrowDown':
+            dy = NUDGE_AMOUNT;
+            break;
+        case 'ArrowLeft':
+            dx = -NUDGE_AMOUNT;
+            break;
+        case 'ArrowRight':
+            dx = NUDGE_AMOUNT;
+            break;
+        default:
+            return;
+    }
+    
+    e.preventDefault();
+
+    updateElements(
+        config.elements.map(el => 
+            selectedElementIds.includes(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
+        )
+    );
+  }, [isEditMode, selectedElementIds, config.elements, updateElements]);
+
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+  
 
   const renderElementContent = (element: PageElement) => {
     const statusIcon = {
@@ -244,6 +325,65 @@ export default function HomePage() {
     
     return statusIcon[element.status || 'idle'] || content;
   };
+
+  const getElementRect = (elementId: string) => {
+    const el = document.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement;
+    if (!el) return null;
+    return {
+      left: el.offsetLeft,
+      top: el.offsetTop,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+      right: el.offsetLeft + el.offsetWidth,
+      bottom: el.offsetTop + el.offsetHeight,
+    };
+  };
+
+  const alignElements = (alignment: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom') => {
+      if (selectedElementIds.length < 2) return;
+
+      const selectedRects = selectedElementIds.map(id => ({ id, rect: getElementRect(id) })).filter(item => item.rect);
+      if (selectedRects.length < 2) return;
+
+      const anchorRect = selectedRects[0].rect!;
+
+      const newElements = config.elements.map(el => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          
+          const currentItem = selectedRects.find(item => item.id === el.id);
+          if (!currentItem || !currentItem.rect) return el;
+
+          const currentRect = currentItem.rect;
+          let newX = el.x;
+          let newY = el.y;
+
+          switch (alignment) {
+              case 'left':
+                  newX = anchorRect.left;
+                  break;
+              case 'right':
+                  newX = anchorRect.right - currentRect.width;
+                  break;
+              case 'center-h':
+                  const anchorCenter = anchorRect.left + anchorRect.width / 2;
+                  newX = anchorCenter - currentRect.width / 2;
+                  break;
+              case 'top':
+                  newY = anchorRect.top;
+                  break;
+              case 'bottom':
+                  newY = anchorRect.bottom - currentRect.height;
+                  break;
+              case 'center-v':
+                  const anchorVCenter = anchorRect.top + anchorRect.height / 2;
+                  newY = anchorVCenter - currentRect.height / 2;
+                  break;
+          }
+          return { ...el, x: newX, y: newY };
+      });
+
+      updateElements(newElements);
+  };
   
   if (!isMounted) {
     return null; 
@@ -257,12 +397,13 @@ export default function HomePage() {
         onContextMenu={handleContextMenu}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onClick={handleContainerClick}
         style={{
           backgroundSize: '20px 20px',
           backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
         }}
       >
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
           {isEditMode && (
               <Button onClick={() => setShowJsonExport(true)}><Copy className="mr-2 h-4 w-4" /> Copy Config</Button>
           )}
@@ -271,6 +412,19 @@ export default function HomePage() {
             <Label htmlFor="edit-mode-toggle">Edit Mode</Label>
           </div>
         </div>
+
+        {isEditMode && selectedElementIds.length > 1 && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-card p-1 rounded-lg border flex items-center gap-1">
+                <TooltipProvider>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('left')}><AlignStartHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Left</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-h')}><AlignCenterHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Center Horizontally</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('right')}><AlignEndHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Right</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('top')}><AlignStartVertical/></Button></TooltipTrigger><TooltipContent><p>Align Top</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-v')}><AlignCenterVertical/></Button></TooltipTrigger><TooltipContent><p>Align Center Vertically</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('bottom')}><AlignEndVertical/></Button></TooltipTrigger><TooltipContent><p>Align Bottom</p></TooltipContent></Tooltip>
+                </TooltipProvider>
+            </div>
+        )}
 
         {config.elements.map(element => (
           <div
@@ -288,7 +442,7 @@ export default function HomePage() {
             }}
             className={cn(
                 "p-2 rounded-md transition-shadow select-none",
-                isEditMode && "shadow-lg border-2 border-dashed border-primary",
+                isEditMode && selectedElementIds.includes(element.id) && "shadow-lg border-2 border-dashed border-primary ring-2 ring-primary ring-offset-2",
                 element.type === 'button' && "min-w-[100px]",
             )}
           >
@@ -335,7 +489,7 @@ export default function HomePage() {
             <div className="flex flex-col">
               {contextMenu.elementId ? (
                 <>
-                  <Button variant="ghost" className="justify-start" onClick={openEditModal}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
+                  <Button variant="ghost" className="justify-start" onClick={openEditModal} disabled={selectedElementIds.length > 1}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
                   <Button variant="ghost" className="justify-start text-destructive" onClick={deleteElement}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
                 </>
               ) : (
@@ -504,3 +658,5 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
     </Dialog>
   )
 }
+
+    
