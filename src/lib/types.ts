@@ -1,4 +1,4 @@
-export type ElementType = 'button' | 'text' | 'icon';
+export type ElementType = 'button' | 'text' | 'icon' | 'image';
 
 export type ElementStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -7,10 +7,13 @@ export interface PageElement {
   type: ElementType;
   x: number;
   y: number;
-  w?: number;
-  h?: number;
+  zIndex?: number;
+  width?: number;
+  height?: number;
   text?: string;
   url?: string;
+  src?: string; // For images
+  aspectRatio?: number; // For images
   icon?: string;
   color?: string;
   fontSize?: number;

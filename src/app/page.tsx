@@ -1,7 +1,8 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, SendToBack, BringToFront, ChevronsDown, ChevronsUp } from 'lucide-react';
+import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -51,7 +52,14 @@ export default function HomePage() {
           throw new Error(`Failed to fetch configuration: ${res.statusText}`);
         }
         const data = await res.json();
-        setConfig(data);
+        const migratedConfig = {
+          ...data,
+          elements: data.elements.map((el: PageElement, index: number) => ({
+            ...el,
+            zIndex: el.zIndex ?? index + 1,
+          })),
+        };
+        setConfig(migratedConfig);
       } catch (error) {
         console.error("Failed to load configuration.json", error);
         toast({
@@ -131,13 +139,19 @@ export default function HomePage() {
   }
 
   const addElement = (type: PageElement['type']) => {
+    const maxZIndex = Math.max(0, ...config.elements.map(el => el.zIndex || 0));
     const newElement: PageElement = {
       id: Date.now().toString(),
       type,
       x: contextMenu.x,
       y: contextMenu.y,
+      zIndex: maxZIndex + 1,
       text: type === 'text' ? 'New Text' : undefined,
       icon: type === 'icon' ? 'Smile' : undefined,
+      src: type === 'image' ? `https://picsum.photos/seed/${Date.now()}/200/300` : undefined,
+      width: type === 'image' ? 200 : undefined,
+      height: type === 'image' ? 300 : undefined,
+      aspectRatio: type === 'image' ? 200/300 : undefined,
       url: type === 'button' ? config.defaultRestUrl : undefined,
       color: '#87CEEB',
       fontSize: 16,
@@ -283,11 +297,10 @@ export default function HomePage() {
     if (!isEditMode) return;
     const touch = e.touches[0];
     
-    // Prevent default to avoid scrolling and other interferences
     if (e.touches.length === 1) {
       longPressTimeoutRef.current = setTimeout(() => {
           handleDragStart(id, touch.clientX, touch.clientY, e.shiftKey);
-          longPressTimeoutRef.current = null; // Clear timeout after it has run
+          longPressTimeoutRef.current = null; 
       }, LONG_PRESS_DURATION);
     }
   };
@@ -298,7 +311,7 @@ export default function HomePage() {
         longPressTimeoutRef.current = null;
     }
     if (draggingState?.isDragging) {
-        e.preventDefault(); // Prevent scrolling while dragging
+        e.preventDefault(); 
         const touch = e.touches[0];
         handleDragMove(touch.clientX, touch.clientY);
     }
@@ -446,6 +459,55 @@ export default function HomePage() {
 
     updateElements(newElements);
 };
+
+const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') => {
+    if (selectedElementIds.length !== 1) return;
+    const elementId = selectedElementIds[0];
+    const sortedElements = [...config.elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+    const currentIndex = sortedElements.findIndex(el => el.id === elementId);
+    if (currentIndex === -1) return;
+
+    const newElements = [...config.elements];
+    const currentZ = sortedElements[currentIndex].zIndex || 0;
+
+    switch (direction) {
+        case 'front':
+            newElements.forEach(el => {
+                if (el.id === elementId) {
+                    el.zIndex = sortedElements.length + 1;
+                }
+            });
+            break;
+        case 'back':
+            newElements.forEach(el => {
+                if (el.id === elementId) {
+                    el.zIndex = 0;
+                }
+            });
+            break;
+        case 'forward':
+            if (currentIndex < sortedElements.length - 1) {
+                const nextZ = sortedElements[currentIndex + 1].zIndex || 0;
+                newElements.find(el => el.id === sortedElements[currentIndex + 1].id)!.zIndex = currentZ;
+                newElements.find(el => el.id === elementId)!.zIndex = nextZ;
+            }
+            break;
+        case 'backward':
+            if (currentIndex > 0) {
+                const prevZ = sortedElements[currentIndex - 1].zIndex || 0;
+                newElements.find(el => el.id === sortedElements[currentIndex - 1].id)!.zIndex = currentZ;
+                newElements.find(el => el.id === elementId)!.zIndex = prevZ;
+            }
+            break;
+    }
+    
+    // Renumber z-indexes to be dense
+    const finalSorted = newElements.sort((a,b) => (a.zIndex || 0) - (b.zIndex || 0));
+    finalSorted.forEach((el, index) => el.zIndex = index + 1);
+
+    updateElements(finalSorted);
+    closeContextMenu();
+};
   
   if (!isMounted) {
     return null; 
@@ -467,7 +529,7 @@ export default function HomePage() {
           backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
         }}
       >
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
+        <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
           {isEditMode && (
               <Button onClick={() => setShowJsonExport(true)}><Copy className="mr-2 h-4 w-4" /> Copy Config</Button>
           )}
@@ -478,7 +540,7 @@ export default function HomePage() {
         </div>
 
         {isEditMode && selectedElementIds.length > 1 && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-card p-1 rounded-lg border flex items-center gap-1">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-card p-1 rounded-lg border flex items-center gap-1">
                 <TooltipProvider>
                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('left')}><AlignStartHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Left</p></TooltipContent></Tooltip>
                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-h')}><AlignCenterHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Center Horizontally</p></TooltipContent></Tooltip>
@@ -490,7 +552,7 @@ export default function HomePage() {
             </div>
         )}
 
-        {config.elements.map(element => (
+        {config.elements.sort((a,b) => (a.zIndex || 0) - (b.zIndex || 0)).map(element => (
           <div
             key={element.id}
             data-element-id={element.id}
@@ -500,6 +562,9 @@ export default function HomePage() {
                 position: 'absolute', 
                 left: element.x, 
                 top: element.y,
+                zIndex: element.zIndex,
+                width: element.width,
+                height: element.height,
                 fontFamily: element.fontFamily,
                 fontSize: `${element.fontSize}px`,
                 fontWeight: element.id === 'page-title' ? 'bold' : 'normal',
@@ -531,7 +596,22 @@ export default function HomePage() {
                     <p style={{ color: element.color }}>{element.text}</p>
                   )}
                 </div>
-            ) : ( // icon
+            ) : element.type === 'image' && element.src ? (
+                <div onClick={() => handleElementClick(element)} className="relative w-full h-full">
+                    {element.status && element.status !== 'idle' ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                            {
+                                {
+                                    loading: <Loader2 className="animate-spin text-white" size={(element.width || 100)/4} />,
+                                    success: <CheckCircle className="text-white" size={(element.width || 100)/4} />,
+                                    error: <XCircle className="text-destructive" size={(element.width || 100)/4} />
+                                }[element.status]
+                            }
+                        </div>
+                    ) : null}
+                     <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="contain" />
+                </div>
+            ) : element.type === 'icon' ? ( // icon
                 <div onClick={() => handleElementClick(element)} className="flex items-center justify-center">
                   {element.status && element.status !== 'idle' ? (
                      {
@@ -543,25 +623,30 @@ export default function HomePage() {
                     <LucideIcon name={element.icon || 'Smile'} style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />
                   )}
                 </div>
-            )}
+            ) : null }
           </div>
         ))}
       </div>
 
       {contextMenu.visible && (
-        <Card style={{ top: contextMenu.y, left: contextMenu.x }} className="absolute z-50">
+        <Card style={{ top: contextMenu.y, left: contextMenu.x }} className="absolute z-[100]">
           <CardContent className="p-2">
             <div className="flex flex-col">
               {contextMenu.elementId ? (
                 <>
                   <Button variant="ghost" className="justify-start" onClick={openEditModal} disabled={selectedElementIds.length > 1}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
                   <Button variant="ghost" className="justify-start text-destructive" onClick={deleteElement}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => reorderElement('front')}><BringToFront className="mr-2 h-4 w-4" /> Bring to Front</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => reorderElement('forward')}><ChevronsUp className="mr-2 h-4 w-4" /> Bring Forward</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => reorderElement('backward')}><ChevronsDown className="mr-2 h-4 w-4" /> Send Backward</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => reorderElement('back')}><SendToBack className="mr-2 h-4 w-4" /> Send to Back</Button>
                 </>
               ) : (
                 <>
                   <Button variant="ghost" className="justify-start" onClick={() => addElement('button')}><Plus className="mr-2 h-4 w-4" /> Add Button</Button>
                   <Button variant="ghost" className="justify-start" onClick={() => addElement('text')}><Plus className="mr-2 h-4 w-4" /> Add Text</Button>
                   <Button variant="ghost" className="justify-start" onClick={() => addElement('icon')}><Plus className="mr-2 h-4 w-4" /> Add Icon</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => addElement('image')}><Plus className="mr-2 h-4 w-4" /> Add Image</Button>
                 </>
               )}
             </div>
@@ -647,6 +732,34 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
   const handleChange = (field: keyof PageElement, value: any) => {
     setFormData(prev => ({...prev, [field]: value}));
   }
+
+  const handleDimensionChange = (field: 'width' | 'height', value: string) => {
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue) || numValue <= 0) return;
+
+    let newWidth = formData.width;
+    let newHeight = formData.height;
+    const aspectRatio = formData.aspectRatio;
+
+    if (field === 'width') {
+      newWidth = numValue;
+      if (aspectRatio) {
+        newHeight = Math.round(numValue / aspectRatio);
+      }
+    } else { // height
+      newHeight = numValue;
+      if (aspectRatio) {
+        newWidth = Math.round(numValue * aspectRatio);
+      }
+    }
+    setFormData(prev => ({...prev, width: newWidth, height: newHeight}));
+  };
+
+  const updateAspectRatio = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    const aspectRatio = naturalWidth / naturalHeight;
+    setFormData(prev => ({...prev, aspectRatio, width: naturalWidth, height: naturalHeight }));
+  };
   
   const fontOptions = [
     { value: "'Poppins', sans-serif", label: "Poppins (Headline)" },
@@ -666,13 +779,30 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
           <DialogTitle>Edit {element.type}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {formData.type !== 'icon' && <div className="grid grid-cols-4 items-center gap-4">
+          {formData.type === 'image' && (
+            <>
+              <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="src" className="text-right">Image URL</Label>
+                  <Input id="src" value={formData.src || ''} onChange={e => handleChange('src', e.target.value)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="width" className="text-right">Width</Label>
+                  <Input id="width" type="number" value={formData.width || ''} onChange={e => handleDimensionChange('width', e.target.value)} className="col-span-1" />
+                  <Label htmlFor="height" className="text-center col-span-1">Height</Label>
+                  <Input id="height" type="number" value={formData.height || ''} onChange={e => handleDimensionChange('height', e.target.value)} className="col-span-1" />
+                  {/* Hidden image to get natural dimensions for aspect ratio */}
+                  <img src={formData.src} onLoad={updateAspectRatio} style={{display: 'none'}} alt="hidden for aspect ratio" />
+              </div>
+            </>
+          )}
+
+          {(formData.type === 'text' || formData.type === 'button') && <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="text" className="text-right">Text</Label>
             <Input id="text" value={formData.text || ''} onChange={e => handleChange('text', e.target.value)} className="col-span-3" />
           </div>}
           
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="url" className="text-right">URL</Label>
+            <Label htmlFor="url" className="text-right">Click URL</Label>
             <Input id="url" value={formData.url || ''} onChange={e => handleChange('url', e.target.value)} className="col-span-3" placeholder="Optional: REST API endpoint"/>
           </div>
           
@@ -717,32 +847,40 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
                 </div>
             </div>
           )}
+          
+          {(formData.type === 'text' || formData.type === 'icon' || formData.type === 'button') && 
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="color" className="text-right">Color</Label>
+              <Input id="color" type="color" value={formData.color || '#000000'} onChange={e => handleChange('color', e.target.value)} className="col-span-3 p-1" />
+            </div>
+          }
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="color" className="text-right">Color</Label>
-            <Input id="color" type="color" value={formData.color || '#000000'} onChange={e => handleChange('color', e.target.value)} className="col-span-3 p-1" />
-          </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="fontSize" className="text-right">Font Size</Label>
-             <Input id="fontSize" type="number" value={formData.fontSize || ''} onChange={e => handleChange('fontSize', parseInt(e.target.value, 10))} className="col-span-3" />
-          </div>
+          {(formData.type === 'text' || formData.type === 'icon' || formData.type === 'button') && (
+            <>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="fontSize" className="text-right">Font Size</Label>
+                <Input id="fontSize" type="number" value={formData.fontSize || ''} onChange={e => handleChange('fontSize', parseInt(e.target.value, 10))} className="col-span-3" />
+              </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="fontFamily" className="text-right">Font Family</Label>
-            <Select value={formData.fontFamily} onValueChange={(val) => handleChange('fontFamily', val)}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a font" />
-                </SelectTrigger>
-                <SelectContent>
-                  {fontOptions.map(font => (
-                    <SelectItem key={font.value} value={font.value} style={{fontFamily: font.value}}>
-                        {font.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-          </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="fontFamily" className="text-right">Font Family</Label>
+                <Select value={formData.fontFamily} onValueChange={(val) => handleChange('fontFamily', val)}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select a font" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fontOptions.map(font => (
+                        <SelectItem key={font.value} value={font.value} style={{fontFamily: font.value}}>
+                            {font.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+              </div>
+            </>
+          )}
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Cancel</Button>
@@ -752,3 +890,5 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
+
+    
