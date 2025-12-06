@@ -78,9 +78,6 @@ export default function HomePage() {
       setShowPasswordPrompt(true);
     } else {
       setIsEditMode(checked);
-      if (!checked) {
-        setIsAuthenticated(false);
-      }
     }
   };
 
