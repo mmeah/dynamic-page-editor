@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, SendToBack, BringToFront, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, SendToBack, BringToFront, ChevronsDown, ChevronsUp, Image as ImageIcon, Type, Square, Smile } from 'lucide-react';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,14 @@ export default function HomePage() {
   const mainContainerRef = React.useRef<HTMLDivElement>(null);
   const longPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const [resizingState, setResizingState] = React.useState<{
+    isResizing: boolean;
+    elementId: string;
+    startX: number;
+    startY: number;
+    initialWidth: number;
+    initialHeight: number;
+  } | null>(null);
 
   const NUDGE_AMOUNT = 1;
   const LONG_PRESS_DURATION = 300;
@@ -280,19 +288,79 @@ export default function HomePage() {
       longPressTimeoutRef.current = null;
     }
   };
+  
+  const handleResizeStart = (e: React.MouseEvent | React.TouchEvent, elementId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!isEditMode) return;
+  
+    const element = config.elements.find(el => el.id === elementId);
+    if (!element || !element.width || !element.height) return;
+  
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+  
+    setResizingState({
+      isResizing: true,
+      elementId,
+      startX: clientX,
+      startY: clientY,
+      initialWidth: element.width,
+      initialHeight: element.height,
+    });
+  };
+
+  const handleResizeMove = React.useCallback((clientX: number, clientY: number) => {
+    if (!resizingState || !resizingState.isResizing) return;
+  
+    const dx = clientX - resizingState.startX;
+    const element = config.elements.find(el => el.id === resizingState.elementId);
+    if (!element || !element.aspectRatio) return;
+  
+    const newWidth = resizingState.initialWidth + dx;
+    const newHeight = newWidth / element.aspectRatio;
+  
+    updateElements(
+      config.elements.map(el => 
+        el.id === resizingState.elementId 
+          ? { ...el, width: Math.max(20, newWidth), height: Math.max(20, newHeight) }
+          : el
+      ),
+      true
+    );
+  }, [resizingState, config.elements]);
+  
+  const handleResizeEnd = React.useCallback(() => {
+    if (resizingState?.isResizing) {
+      updateElements([...config.elements]);
+      setResizingState(null);
+    }
+  }, [resizingState, config.elements]);
+
+  const handleGlobalMouseMove = React.useCallback((e: MouseEvent) => {
+    if (draggingState?.isDragging) handleDragMove(e.clientX, e.clientY);
+    if (resizingState?.isResizing) handleResizeMove(e.clientX, e.clientY);
+  }, [draggingState, resizingState, handleDragMove, handleResizeMove]);
+
+  const handleGlobalMouseUp = React.useCallback(() => {
+    handleDragEnd();
+    handleResizeEnd();
+  }, [handleResizeEnd]);
+
+  React.useEffect(() => {
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }
+  }, [handleGlobalMouseMove, handleGlobalMouseUp]);
+
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     handleDragStart(id, e.clientX, e.clientY, e.shiftKey);
   };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    handleDragMove(e.clientX, e.clientY);
-  };
-
-  const handleMouseUp = () => {
-    handleDragEnd();
-  };
-
+  
   const handleTouchStart = (e: React.TouchEvent, id: string) => {
     if (!isEditMode) return;
     const touch = e.touches[0];
@@ -315,6 +383,11 @@ export default function HomePage() {
         const touch = e.touches[0];
         handleDragMove(touch.clientX, touch.clientY);
     }
+    if (resizingState?.isResizing) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        handleResizeMove(touch.clientX, touch.clientY);
+    }
   };
 
   const handleTouchEnd = () => {
@@ -323,8 +396,8 @@ export default function HomePage() {
       longPressTimeoutRef.current = null;
     }
     handleDragEnd();
+    handleResizeEnd();
   };
-
 
   const handleContainerClick = (e: React.MouseEvent) => {
       if (e.target === mainContainerRef.current) {
@@ -519,8 +592,6 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
         ref={mainContainerRef}
         className="w-full h-full relative overflow-auto grid-bg" 
         onContextMenu={handleContextMenu}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={handleContainerClick}
@@ -597,7 +668,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                   )}
                 </div>
             ) : element.type === 'image' && element.src ? (
-                <div onClick={() => handleElementClick(element)} className="relative w-full h-full">
+                <div onClick={() => handleElementClick(element)} className="relative w-full h-full group">
                     {element.status && element.status !== 'idle' ? (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                             {
@@ -609,7 +680,14 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                             }
                         </div>
                     ) : null}
-                     <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="contain" />
+                     <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="cover" className="rounded-md" />
+                     {isEditMode && selectedElementIds.includes(element.id) && (
+                        <div 
+                            onMouseDown={(e) => handleResizeStart(e, element.id)}
+                            onTouchStart={(e) => handleResizeStart(e, element.id)}
+                            className="absolute -right-1 -bottom-1 w-4 h-4 bg-primary rounded-full border-2 border-background cursor-se-resize"
+                        />
+                     )}
                 </div>
             ) : element.type === 'icon' ? ( // icon
                 <div onClick={() => handleElementClick(element)} className="flex items-center justify-center">
@@ -635,18 +713,18 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
               {contextMenu.elementId ? (
                 <>
                   <Button variant="ghost" className="justify-start" onClick={openEditModal} disabled={selectedElementIds.length > 1}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
-                  <Button variant="ghost" className="justify-start text-destructive" onClick={deleteElement}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
                   <Button variant="ghost" className="justify-start" onClick={() => reorderElement('front')}><BringToFront className="mr-2 h-4 w-4" /> Bring to Front</Button>
                   <Button variant="ghost" className="justify-start" onClick={() => reorderElement('forward')}><ChevronsUp className="mr-2 h-4 w-4" /> Bring Forward</Button>
                   <Button variant="ghost" className="justify-start" onClick={() => reorderElement('backward')}><ChevronsDown className="mr-2 h-4 w-4" /> Send Backward</Button>
                   <Button variant="ghost" className="justify-start" onClick={() => reorderElement('back')}><SendToBack className="mr-2 h-4 w-4" /> Send to Back</Button>
+                  <Button variant="ghost" className="justify-start text-destructive" onClick={deleteElement}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" className="justify-start" onClick={() => addElement('button')}><Plus className="mr-2 h-4 w-4" /> Add Button</Button>
-                  <Button variant="ghost" className="justify-start" onClick={() => addElement('text')}><Plus className="mr-2 h-4 w-4" /> Add Text</Button>
-                  <Button variant="ghost" className="justify-start" onClick={() => addElement('icon')}><Plus className="mr-2 h-4 w-4" /> Add Icon</Button>
-                  <Button variant="ghost" className="justify-start" onClick={() => addElement('image')}><Plus className="mr-2 h-4 w-4" /> Add Image</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => addElement('button')}><Square className="mr-2 h-4 w-4" /> Add Button</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => addElement('text')}><Type className="mr-2 h-4 w-4" /> Add Text</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => addElement('icon')}><Smile className="mr-2 h-4 w-4" /> Add Icon</Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => addElement('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Image</Button>
                 </>
               )}
             </div>
@@ -671,9 +749,11 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
           <DialogHeader><DialogTitle>Page Configuration</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Copy this JSON and save it to `public/configuration.json` to persist your changes.</p>
           <div className="relative">
-            <pre className="bg-muted p-4 rounded-md text-sm max-h-[50vh] overflow-auto">
-                <code>{JSON.stringify(config, null, 2)}</code>
-            </pre>
+            <ScrollArea className="h-96">
+                <pre className="bg-muted p-4 rounded-md text-sm">
+                    <code>{JSON.stringify(config, null, 2)}</code>
+                </pre>
+            </ScrollArea>
             <Button size="sm" className="absolute top-2 right-2" onClick={() => {
                 navigator.clipboard.writeText(JSON.stringify(config, null, 2));
                 toast({ title: "Copied to clipboard!" });
