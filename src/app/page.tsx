@@ -13,11 +13,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/lib/types';
 import { LucideIcon, iconList } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
-
-const DEFAULT_REST_URL = "http://security.masjidds.org/cgi-bin/test.py";
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -25,7 +25,7 @@ export default function HomePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  const [config, setConfig] = useState<PageConfig>({ pageTitle: 'Loading...', editorPassword: '', elements: [] });
+  const [config, setConfig] = useState<PageConfig>({ pageTitle: 'Loading...', editorPassword: '', defaultRestUrl: '', elements: [] });
   const [contextMenu, setContextMenu] = useState<ContextMenuData>({ visible: false, x: 0, y: 0 });
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [showJsonExport, setShowJsonExport] = useState(false);
@@ -109,7 +109,7 @@ export default function HomePage() {
       y: contextMenu.y,
       text: type === 'text' ? 'New Text' : undefined,
       icon: type === 'icon' ? 'Smile' : undefined,
-      url: type === 'button' ? DEFAULT_REST_URL : undefined,
+      url: type === 'button' ? config.defaultRestUrl : undefined,
       color: '#87CEEB',
       fontSize: 16,
       fontFamily: "'PT Sans', sans-serif",
@@ -417,6 +417,7 @@ export default function HomePage() {
 
 function EditElementModal({ element, onSave, onCancel }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void }) {
   const [formData, setFormData] = useState(element);
+  const [iconSearch, setIconSearch] = useState('');
 
   const handleSave = () => {
     onSave(formData);
@@ -426,9 +427,13 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
     setFormData(prev => ({...prev, [field]: value}));
   }
 
+  const filteredIcons = iconList.filter(iconName => 
+    iconName.toLowerCase().includes(iconSearch.toLowerCase())
+  );
+
   return (
     <Dialog open={true} onOpenChange={onCancel}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit {element.type}</DialogTitle>
         </DialogHeader>
@@ -443,21 +448,44 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
             <Input id="url" value={formData.url || ''} onChange={e => handleChange('url', e.target.value)} className="col-span-3" placeholder="Optional: REST API endpoint"/>
           </div>
           
-          {(formData.type === 'button' || formData.type === 'icon') && <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="icon" className="text-right">Icon</Label>
-             <Select value={formData.icon} onValueChange={(val) => handleChange('icon', val)}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select an icon" />
-                </SelectTrigger>
-                <SelectContent>
-                  {iconList.map(iconName => (
-                    <SelectItem key={iconName} value={iconName}>
-                      <LucideIcon name={iconName} className="inline-block mr-2 h-4 w-4" /> {iconName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-          </div>}
+          {(formData.type === 'button' || formData.type === 'icon') && (
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
+              <div className="col-span-3">
+                <Input 
+                  id="icon-search"
+                  placeholder="Search icons..."
+                  value={iconSearch}
+                  onChange={e => setIconSearch(e.target.value)}
+                  className="mb-2"
+                />
+                <TooltipProvider>
+                  <ScrollArea className="h-40 w-full rounded-md border">
+                    <div className="p-4 grid grid-cols-6 gap-2">
+                      {filteredIcons.map(iconName => (
+                        <Tooltip key={iconName}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={formData.icon === iconName ? 'secondary' : 'ghost'}
+                              size="icon"
+                              onClick={() => handleChange('icon', iconName)}
+                              className={cn("border", formData.icon === iconName && "border-primary")}
+                            >
+                              <LucideIcon name={iconName} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{iconName}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </TooltipProvider>
+                 {formData.icon && <p className="text-sm text-muted-foreground mt-2">Selected: {formData.icon}</p>}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="color" className="text-right">Color</Label>
@@ -483,8 +511,7 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save changes</Button>
+          <Button variant="outline" onClick={onCancel}>Cancel</Button>          <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
