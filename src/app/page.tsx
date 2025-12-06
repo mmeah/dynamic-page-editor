@@ -16,8 +16,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/lib/types';
-import { LucideIcon, iconList } from '@/lib/icons.tsx';
+import { LucideIcon } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
+import { iconList } from '@/lib/icons';
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -25,11 +26,10 @@ export default function HomePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  const [config, setConfig] = useState<PageConfig>({ pageTitle: 'Loading...', editorPassword: '', defaultRestUrl: '', favicon: '', elements: [] });
+  const [config, setConfig] = useState<PageConfig>({ elements: [] });
   const [contextMenu, setContextMenu] = useState<ContextMenuData>({ visible: false, x: 0, y: 0 });
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [showJsonExport, setShowJsonExport] = useState(false);
-  const [showJsonImport, setShowJsonImport] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
   const [draggingElement, setDraggingElement] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
@@ -58,8 +58,11 @@ export default function HomePage() {
   }, [toast]);
 
   useEffect(() => {
-    if (config.pageTitle) {
-      document.title = config.pageTitle;
+    const pageTitleElement = config.elements.find(el => el.id === 'page-title');
+    const pageTitle = pageTitleElement ? pageTitleElement.text : 'Dynamic Page';
+
+    if (pageTitle) {
+      document.title = pageTitle;
     }
     if (config.favicon) {
       let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
@@ -70,7 +73,7 @@ export default function HomePage() {
       }
       link.href = config.favicon;
     }
-  }, [config.pageTitle, config.favicon]);
+  }, [config]);
 
 
   const handleEditModeToggle = (checked: boolean) => {
@@ -159,29 +162,6 @@ export default function HomePage() {
     updateElements(config.elements.map(el => (el.id === updatedElement.id ? updatedElement : el)));
     setEditingElement(null);
   };
-  
-  const handleJsonImport = () => {
-    try {
-      const parsedConfig = JSON.parse(jsonInput);
-      if (parsedConfig && typeof parsedConfig === 'object' && Array.isArray(parsedConfig.elements)) {
-        setConfig(parsedConfig);
-        setShowJsonImport(false);
-        setJsonInput('');
-        toast({
-          title: "Configuration Loaded",
-          description: "Page has been updated.",
-        });
-      } else {
-        throw new Error("Invalid format: Configuration must be a valid JSON object with an 'elements' array.");
-      }
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to load configuration",
-        description: error instanceof Error ? error.message : "Invalid JSON format.",
-      });
-    }
-  };
 
   const handleElementClick = async (element: PageElement) => {
     if (isEditMode || !element.url) return;
@@ -263,26 +243,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background" onClick={closeContextMenu}>
-      <header className="flex items-center justify-between p-4 border-b bg-card">
-        <h1 className="text-2xl font-headline font-bold">{config.pageTitle}</h1>
-        <div className="flex items-center gap-4">
-          {isEditMode && (
-            <div className="flex items-center gap-2">
-              <Button onClick={() => setShowJsonExport(true)}><Copy className="mr-2 h-4 w-4" /> Copy Config</Button>
-              <Button onClick={() => setShowJsonImport(true)} variant="outline"><Upload className="mr-2 h-4 w-4" /> Load Config</Button>
-            </div>
-          )}
-          <div className="flex items-center space-x-2">
-            <Switch id="edit-mode-toggle" checked={isEditMode} onCheckedChange={handleEditModeToggle} />
-            <Label htmlFor="edit-mode-toggle">Edit Mode</Label>
-          </div>
-        </div>
-      </header>
-
-      <main 
+    <div className="h-screen bg-background" onClick={closeContextMenu}>
+      <div 
         ref={mainContainerRef}
-        className="flex-grow relative overflow-auto grid-bg" 
+        className="w-full h-full relative overflow-auto grid-bg" 
         onContextMenu={handleContextMenu}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -291,6 +255,24 @@ export default function HomePage() {
           backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
         }}
       >
+        {isEditMode && (
+            <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
+              <Button onClick={() => setShowJsonExport(true)}><Copy className="mr-2 h-4 w-4" /> Copy Config</Button>
+               <div className="flex items-center space-x-2 bg-card p-2 rounded-lg border">
+                <Switch id="edit-mode-toggle" checked={isEditMode} onCheckedChange={handleEditModeToggle} />
+                <Label htmlFor="edit-mode-toggle">Edit Mode</Label>
+              </div>
+            </div>
+        )}
+        {!isEditMode && (
+             <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
+                <div className="flex items-center space-x-2 bg-card p-2 rounded-lg border">
+                    <Switch id="edit-mode-toggle" checked={isEditMode} onCheckedChange={handleEditModeToggle} />
+                    <Label htmlFor="edit-mode-toggle">Edit Mode</Label>
+                </div>
+            </div>
+        )}
+
         {config.elements.map(element => (
           <div
             key={element.id}
@@ -302,6 +284,7 @@ export default function HomePage() {
                 top: element.y,
                 fontFamily: element.fontFamily,
                 fontSize: `${element.fontSize}px`,
+                fontWeight: element.id === 'page-title' ? 'bold' : 'normal',
                 cursor: isEditMode ? 'move' : (element.url ? 'pointer' : 'default'),
             }}
             className={cn(
@@ -345,7 +328,7 @@ export default function HomePage() {
             )}
           </div>
         ))}
-      </main>
+      </div>
 
       {contextMenu.visible && (
         <Card style={{ top: contextMenu.y, left: contextMenu.x }} className="absolute z-50">
@@ -399,25 +382,6 @@ export default function HomePage() {
             <DialogClose asChild>
               <Button variant="outline">Close</Button>
             </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={showJsonImport} onOpenChange={setShowJsonImport}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Load Page Configuration</DialogTitle></DialogHeader>
-           <p className="text-sm text-muted-foreground">Paste your JSON configuration below to load it onto the page.</p>
-           <Textarea
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            placeholder="Paste JSON here..."
-            className="min-h-[200px] max-h-[50vh] font-mono text-sm bg-muted"
-          />
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button onClick={handleJsonImport}>Load Configuration</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -533,5 +497,3 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
     </Dialog>
   )
 }
-
-    

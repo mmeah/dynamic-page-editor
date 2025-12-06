@@ -14,7 +14,7 @@ export interface PageElement {
   icon?: string;
   color?: string;
   fontSize?: number;
-  fontFamily?: "'Poppins', sans-serif" | "'PT Sans', sans-serif";
+  fontFamily?: string;
   status?: ElementStatus;
 }
 
@@ -27,7 +27,6 @@ export interface ContextMenuData {
 
 export interface PageConfig {
   editorPassword?: string;
-  pageTitle?: string;
   defaultRestUrl?: string;
   favicon?: string;
   elements: PageElement[];

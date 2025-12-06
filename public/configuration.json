@@ -1,14 +1,23 @@
 {
   "editorPassword": "admin",
-  "pageTitle": "My Dynamic Page",
   "defaultRestUrl": "http://security.masjidds.org/cgi-bin/test.py",
-  "favicon": "/favicon.ico",
+  "favicon": "",
   "elements": [
+    {
+      "id": "page-title",
+      "type": "text",
+      "text": "My Dynamic Page",
+      "x": 40,
+      "y": 30,
+      "fontSize": 36,
+      "fontFamily": "'Poppins', sans-serif"
+    },
     {
       "id": "1765037712481",
       "type": "icon",
-      "x": 32,
-      "y": 29,
+      "x": 600,
+      "y": 200,
+      "text": "New Button",
       "icon": "Home",
       "color": "#16769c",
       "fontSize": 16,
