@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, SendToBack, BringToFront, ChevronsDown, ChevronsUp, Image as ImageIcon, Type, Square, Smile } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, SendToBack, BringToFront, ChevronsDown, ChevronsUp, Image as ImageIcon, Type, Square, Smile, GripVertical } from 'lucide-react';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ export default function HomePage() {
     initialPositions: Map<string, { x: number; y: number }>;
     startX: number;
     startY: number;
+    didMove: boolean;
   } | null>(null);
   const mainContainerRef = React.useRef<HTMLDivElement>(null);
   const longPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -224,7 +225,7 @@ export default function HomePage() {
     setTimeout(() => updateStatus(element.id, 'idle'), 2000);
   };
 
-  const handleDragStart = (id: string, clientX: number, clientY: number, shiftKey = false) => {
+    const handleDragStart = (id: string, clientX: number, clientY: number, shiftKey = false) => {
     if (!isEditMode) return;
 
     let newSelectedIds: string[];
@@ -251,7 +252,8 @@ export default function HomePage() {
     });
 
     setDraggingState({
-      isDragging: true,
+      isDragging: false, // Will be set to true on first move
+      didMove: false,
       initialPositions,
       startX: clientX,
       startY: clientY,
@@ -259,7 +261,20 @@ export default function HomePage() {
   };
 
   const handleDragMove = (clientX: number, clientY: number) => {
-    if (!draggingState || !draggingState.isDragging || !mainContainerRef.current) return;
+    if (!draggingState || !mainContainerRef.current) return;
+    
+    let currentDraggingState = { ...draggingState };
+    if (!currentDraggingState.isDragging) {
+        const dx = Math.abs(clientX - currentDraggingState.startX);
+        const dy = Math.abs(clientY - currentDraggingState.startY);
+        if (dx > 2 || dy > 2) { // Drag threshold
+            currentDraggingState.isDragging = true;
+        } else {
+            return; // Not a drag yet
+        }
+    }
+    currentDraggingState.didMove = true;
+
 
     const dx = clientX - draggingState.startX;
     const dy = clientY - draggingState.startY;
@@ -276,13 +291,22 @@ export default function HomePage() {
       }),
       true
     );
+     if (draggingState && !draggingState.isDragging) {
+        setDraggingState(currentDraggingState);
+    }
   };
 
-  const handleDragEnd = () => {
-    if (draggingState?.isDragging) {
-      updateElements([...config.elements]);
+  const handleDragEnd = (elementId?: string) => {
+    if (draggingState) {
+      if (draggingState.isDragging) {
+        updateElements([...config.elements]);
+      } else if (!draggingState.didMove && elementId) {
+        const element = config.elements.find(el => el.id === elementId);
+        if (element) handleElementClick(element);
+      }
       setDraggingState(null);
     }
+
     if (longPressTimeoutRef.current) {
       clearTimeout(longPressTimeoutRef.current);
       longPressTimeoutRef.current = null;
@@ -338,7 +362,7 @@ export default function HomePage() {
   }, [resizingState, config.elements]);
 
   const handleGlobalMouseMove = React.useCallback((e: MouseEvent) => {
-    if (draggingState?.isDragging) handleDragMove(e.clientX, e.clientY);
+    if (draggingState) handleDragMove(e.clientX, e.clientY);
     if (resizingState?.isResizing) handleResizeMove(e.clientX, e.clientY);
   }, [draggingState, resizingState, handleDragMove, handleResizeMove]);
 
@@ -358,6 +382,9 @@ export default function HomePage() {
 
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
+    if (e.target instanceof HTMLElement && e.target.closest('[data-drag-handle]')) {
+        e.stopPropagation();
+    }
     handleDragStart(id, e.clientX, e.clientY, e.shiftKey);
   };
   
@@ -378,7 +405,7 @@ export default function HomePage() {
         clearTimeout(longPressTimeoutRef.current);
         longPressTimeoutRef.current = null;
     }
-    if (draggingState?.isDragging) {
+    if (draggingState) {
         e.preventDefault(); 
         const touch = e.touches[0];
         handleDragMove(touch.clientX, touch.clientY);
@@ -627,7 +654,8 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
           <div
             key={element.id}
             data-element-id={element.id}
-            onMouseDown={(e) => handleMouseDown(e, element.id)}
+            onMouseDown={(e) => { if (element.type !== 'image') handleMouseDown(e, element.id)}}
+            onMouseUp={() => handleDragEnd(element.id)}
             onTouchStart={(e) => handleTouchStart(e, element.id)}
             style={{ 
                 position: 'absolute', 
@@ -639,7 +667,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 fontFamily: element.fontFamily,
                 fontSize: `${element.fontSize}px`,
                 fontWeight: element.id === 'page-title' ? 'bold' : 'normal',
-                cursor: isEditMode ? 'move' : (element.url ? 'pointer' : 'default'),
+                cursor: isEditMode && element.type !== 'image' ? 'move' : (element.url && !isEditMode ? 'pointer' : 'default'),
             }}
             className={cn(
                 "p-2 rounded-md transition-shadow select-none",
@@ -650,13 +678,12 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
             {element.type === 'button' ? (
               <Button 
                 style={{ backgroundColor: element.color, fontSize: 'inherit', fontFamily: 'inherit' }}
-                onClick={() => handleElementClick(element)}
                 className="w-full h-full text-primary-foreground"
               >
                 {renderElementContent(element)}
               </Button>
             ) : element.type === 'text' ? (
-                <div onClick={() => handleElementClick(element)} className="flex items-center justify-center">
+                <div className="flex items-center justify-center">
                   {element.status && element.status !== 'idle' ? (
                     {
                       loading: <Loader2 className="animate-spin" size={element.fontSize} />,
@@ -668,9 +695,18 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                   )}
                 </div>
             ) : element.type === 'image' && element.src ? (
-                <div onClick={() => handleElementClick(element)} className="relative w-full h-full group">
+                <div className="relative w-full h-full group" onMouseDown={(e) => handleMouseDown(e, element.id)} onMouseUp={() => handleDragEnd(element.id)}>
+                    {isEditMode && selectedElementIds.includes(element.id) && (
+                        <div 
+                            data-drag-handle
+                            onMouseDown={(e) => handleMouseDown(e, element.id)}
+                            className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full p-1 bg-primary rounded-t-md cursor-move opacity-50 hover:opacity-100 transition-opacity"
+                        >
+                            <GripVertical className="h-4 w-4 text-primary-foreground" />
+                        </div>
+                    )}
                     {element.status && element.status !== 'idle' ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
                             {
                                 {
                                     loading: <Loader2 className="animate-spin text-white" size={(element.width || 100)/4} />,
@@ -690,7 +726,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                      )}
                 </div>
             ) : element.type === 'icon' ? ( // icon
-                <div onClick={() => handleElementClick(element)} className="flex items-center justify-center">
+                <div className="flex items-center justify-center">
                   {element.status && element.status !== 'idle' ? (
                      {
                       loading: <Loader2 className="animate-spin" style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />,
@@ -803,7 +839,7 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     if (selectedIconRef.current) {
       selectedIconRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-  }, [filteredIcons]);
+  }, [filteredIcons, formData.icon]);
 
   const handleSave = () => {
     onSave(formData);
@@ -970,3 +1006,5 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
+
+    
