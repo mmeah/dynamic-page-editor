@@ -560,7 +560,7 @@ export default function HomePage() {
 
 function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
   const [formData, setFormData] = React.useState(element);
-  const [iconPopoverOpen, setIconPopoverOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   const handleSave = () => {
     onSave(formData);
@@ -581,9 +581,11 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     { value: "'Trebuchet MS', Helvetica, sans-serif", label: "Trebuchet MS" },
   ];
 
+  const filteredIcons = iconList.filter(iconName => iconName.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
     <Dialog open={true} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit {element.type}</DialogTitle>
         </DialogHeader>
@@ -599,56 +601,31 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
           </div>
           
           {(formData.type === 'button' || formData.type === 'icon' || formData.type === 'text') && (
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
-              <div className="col-span-3">
-                <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={iconPopoverOpen} className="w-full justify-between">
-                      {formData.icon ? (
-                        <>
-                          <LucideIcon name={formData.icon} className="mr-2 h-4 w-4" />
-                          {formData.icon}
-                        </>
-                      ) : (
-                        "Select icon..."
-                      )}
-                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search icons..." />
-                      <CommandList>
-                        <CommandEmpty>No icon found.</CommandEmpty>
-                        <CommandGroup>
-                           <ScrollArea className="h-48">
-                              {iconList.map((iconName) => (
-                                <CommandItem
-                                  key={iconName}
-                                  value={iconName}
-                                  onSelect={(currentValue) => {
-                                    handleChange('icon', currentValue === formData.icon ? '' : currentValue)
-                                    setIconPopoverOpen(false)
-                                  }}
+             <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
+                <div className="col-span-3">
+                    <Input 
+                        placeholder="Search icons..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="mb-2"
+                    />
+                    <ScrollArea className="h-48 rounded-md border">
+                        <div className="p-4 grid grid-cols-6 gap-4">
+                            {filteredIcons.map((iconName) => (
+                                <Button
+                                    key={iconName}
+                                    variant={formData.icon === iconName ? 'secondary' : 'ghost'}
+                                    onClick={() => handleChange('icon', iconName)}
+                                    className="h-auto p-2 flex flex-col items-center justify-center gap-1"
                                 >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      formData.icon === iconName ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  <LucideIcon name={iconName} className="mr-2 h-4 w-4" />
-                                  {iconName}
-                                </CommandItem>
-                              ))}
-                           </ScrollArea>
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
+                                    <LucideIcon name={iconName} className="h-6 w-6" />
+                                    <span className="text-xs truncate">{iconName}</span>
+                                </Button>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </div>
             </div>
           )}
 
