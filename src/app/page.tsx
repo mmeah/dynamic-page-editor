@@ -472,7 +472,7 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
                               className={cn("border", formData.icon === iconName && "border-primary")}
                             >
                               <LucideIcon name={iconName} />
-                            </Button>
+                            </Button>                          
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{iconName}</p>
