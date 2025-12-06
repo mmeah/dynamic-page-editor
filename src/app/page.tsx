@@ -19,9 +19,10 @@ import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/
 import { LucideIcon } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
 import { iconList } from '@/lib/icons.tsx';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = React.useState(false);
@@ -98,6 +99,7 @@ export default function HomePage() {
   };
 
   const handlePasswordSubmit = () => {
+    // Check password from the fetched configuration.json
     if (passwordInput === (config.editorPassword || 'admin')) {
       setIsAuthenticated(true);
       setIsEditMode(true);
@@ -208,6 +210,7 @@ export default function HomePage() {
     if (!isEditMode) return;
   
     let newSelectedIds: string[];
+    // if shift is pressed, toggle selection
     if (e.shiftKey) {
       if (selectedElementIds.includes(id)) {
         newSelectedIds = selectedElementIds.filter(sid => sid !== id);
@@ -215,7 +218,8 @@ export default function HomePage() {
         newSelectedIds = [...selectedElementIds, id];
       }
     } else {
-        if (!selectedElementIds.includes(id)) {
+        // if not holding shift, only select the clicked element if it's not already the only one selected
+        if (!selectedElementIds.includes(id) || selectedElementIds.length > 1) {
             newSelectedIds = [id];
         } else {
             newSelectedIds = selectedElementIds;
@@ -374,27 +378,27 @@ export default function HomePage() {
           let newY = el.y;
   
           switch (alignment) {
-              case 'left':
-                  newX = anchorRect.left;
-                  break;
-              case 'right':
-                  newX = anchorRect.right - currentRect.width;
-                  break;
-              case 'center-h':
-                  const anchorHCenter = anchorRect.left + anchorRect.width / 2;
-                  newX = anchorHCenter - currentRect.width / 2;
-                  break;
-              case 'top':
-                  newY = anchorRect.top;
-                  break;
-              case 'bottom':
-                  newY = anchorRect.bottom - currentRect.height;
-                  break;
-              case 'center-v':
-                  const anchorVCenter = anchorRect.top + anchorRect.height / 2;
-                  newY = anchorVCenter - currentRect.height / 2;
-                  break;
-          }
+            case 'left':
+                newX = anchorRect.left;
+                break;
+            case 'center-h':
+                const anchorHCenter = anchorRect.left + anchorRect.width / 2;
+                newX = anchorHCenter - currentRect.width / 2;
+                break;
+            case 'right':
+                newX = anchorRect.right - currentRect.width;
+                break;
+            case 'top':
+                newY = anchorRect.top;
+                break;
+            case 'center-v':
+                const anchorVCenter = anchorRect.top + anchorRect.height / 2;
+                newY = anchorVCenter - currentRect.height / 2;
+                break;
+            case 'bottom':
+                newY = anchorRect.bottom - currentRect.height;
+                break;
+        }
           return { ...el, x: newX, y: newY };
       });
   
@@ -561,6 +565,13 @@ export default function HomePage() {
 function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
   const [formData, setFormData] = React.useState(element);
   const [searchTerm, setSearchTerm] = React.useState('');
+  const selectedIconRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    if (selectedIconRef.current) {
+      selectedIconRef.current.scrollIntoView({ block: 'center' });
+    }
+  }, []);
 
   const handleSave = () => {
     onSave(formData);
@@ -612,17 +623,21 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
                     />
                     <ScrollArea className="h-48 rounded-md border">
                         <div className="p-4 grid grid-cols-6 gap-4">
-                            {filteredIcons.map((iconName) => (
+                            {filteredIcons.map((iconName) => {
+                                const isSelected = formData.icon === iconName;
+                                return (
                                 <Button
                                     key={iconName}
-                                    variant={formData.icon === iconName ? 'secondary' : 'ghost'}
+                                    ref={isSelected ? selectedIconRef : null}
+                                    variant={isSelected ? 'secondary' : 'ghost'}
                                     onClick={() => handleChange('icon', iconName)}
                                     className="h-auto p-2 flex flex-col items-center justify-center gap-1"
                                 >
                                     <LucideIcon name={iconName} className="h-6 w-6" />
                                     <span className="text-xs truncate">{iconName}</span>
                                 </Button>
-                            ))}
+                                );
+                            })}
                         </div>
                     </ScrollArea>
                 </div>
@@ -663,5 +678,3 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
-
-    
