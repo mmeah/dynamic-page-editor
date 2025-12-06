@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/lib/types';
 import { LucideIcon } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
-import { iconList } from '@/lib/icons';
+import { iconList } from '@/lib/icons.tsx';
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -497,3 +497,5 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
     </Dialog>
   )
 }
+
+    
