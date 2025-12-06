@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import React from 'react';
@@ -18,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/lib/types';
 import { LucideIcon, iconList } from '@/lib/icons';
 import { cn } from '@/lib/utils';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = React.useState(false);
@@ -482,12 +480,12 @@ export default function HomePage() {
         {isEditMode && selectedElementIds.length > 1 && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-card p-1 rounded-lg border flex items-center gap-1">
                 <TooltipProvider>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('left')}><AlignStartVertical/></Button></TooltipTrigger><TooltipContent><p>Align Left</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-h')}><AlignCenterVertical/></Button></TooltipTrigger><TooltipContent><p>Align Center Horizontally</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('right')}><AlignEndVertical/></Button></TooltipTrigger><TooltipContent><p>Align Right</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('top')}><AlignStartHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Top</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-v')}><AlignCenterHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Center Vertically</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('bottom')}><AlignEndHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Bottom</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('left')}><AlignStartHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Left</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-h')}><AlignCenterHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Center Horizontally</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('right')}><AlignEndHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Right</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('top')}><AlignStartVertical/></Button></TooltipTrigger><TooltipContent><p>Align Top</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-v')}><AlignCenterVertical/></Button></TooltipTrigger><TooltipContent><p>Align Center Vertically</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('bottom')}><AlignEndVertical/></Button></TooltipTrigger><TooltipContent><p>Align Bottom</p></TooltipContent></Tooltip>
                 </TooltipProvider>
             </div>
         )}
@@ -612,12 +610,35 @@ export default function HomePage() {
 function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
   const [formData, setFormData] = React.useState(element);
   const selectedIconRef = React.useRef<HTMLButtonElement>(null);
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState("");
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
+  const filteredIcons = React.useMemo(() => {
+    const normalizedSearch = debouncedSearchTerm.replace(/\s/g, '').toLowerCase();
+    if (!normalizedSearch) {
+      return iconList;
+    }
+    return iconList.filter(iconName =>
+      iconName.toLowerCase().includes(normalizedSearch)
+    );
+  }, [debouncedSearchTerm]);
+
 
   React.useEffect(() => {
     if (selectedIconRef.current) {
       selectedIconRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-  }, []);
+  }, [filteredIcons]);
 
   const handleSave = () => {
     onSave(formData);
@@ -660,14 +681,21 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
                 <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
                 <div className="col-span-3">
                     {formData.icon && (
-                      <div className="mb-4 p-2 bg-muted rounded-md flex items-center gap-2">
+                      <div className="mb-2 p-2 bg-muted rounded-md flex items-center gap-2">
                         <LucideIcon name={formData.icon} className="h-6 w-6" />
                         <span className="text-sm font-medium">{formData.icon}</span>
                       </div>
                     )}
-                    <ScrollArea className="h-48 rounded-lg border shadow-md">
+                     <div className="mb-2">
+                        <Input 
+                            placeholder="Search icons..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <ScrollArea className="h-48 rounded-lg border shadow-inner">
                       <div className="p-2 grid grid-cols-6 gap-2">
-                          {iconList.map((iconName) => {
+                          {filteredIcons.length > 0 ? filteredIcons.map((iconName) => {
                               const isSelected = formData.icon === iconName;
                               return (
                               <Button
@@ -681,7 +709,9 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
                                   <span className="text-xs w-full text-center truncate">{iconName}</span>
                               </Button>
                               );
-                          })}
+                          }) : (
+                            <p className="col-span-6 text-center text-sm text-muted-foreground p-4">No icons found.</p>
+                          )}
                       </div>
                     </ScrollArea>
                 </div>
@@ -722,6 +752,3 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
-
-
-    
