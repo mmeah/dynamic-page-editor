@@ -19,6 +19,10 @@ import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/
 import { LucideIcon } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
 import { iconList } from '@/lib/icons.tsx';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check } from 'lucide-react';
+
+const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72];
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -392,18 +396,47 @@ export default function HomePage() {
 function EditElementModal({ element, onSave, onCancel }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void }) {
   const [formData, setFormData] = useState(element);
   const [iconSearch, setIconSearch] = useState('');
+  const [fontSizePopoverOpen, setFontSizePopoverOpen] = useState(false);
+  const [customFontSize, setCustomFontSize] = useState(element.fontSize?.toString() || '16');
+
 
   const handleSave = () => {
-    onSave(formData);
+    onSave({...formData, fontSize: parseInt(customFontSize, 10) || formData.fontSize});
   };
 
   const handleChange = (field: keyof PageElement, value: any) => {
     setFormData(prev => ({...prev, [field]: value}));
   }
 
+  const handleFontSizeSelect = (size: number) => {
+    handleChange('fontSize', size);
+    setCustomFontSize(size.toString());
+    setFontSizePopoverOpen(false);
+  }
+  
+  const handleCustomSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCustomFontSize(value);
+    const intValue = parseInt(value, 10);
+    if (!isNaN(intValue)) {
+        handleChange('fontSize', intValue);
+    }
+  }
+
   const filteredIcons = iconList.filter(iconName => 
     iconName.toLowerCase().includes(iconSearch.toLowerCase())
   );
+  
+  const fontOptions = [
+    { value: "'Poppins', sans-serif", label: "Poppins (Headline)" },
+    { value: "'PT Sans', sans-serif", label: "PT Sans (Body)" },
+    { value: "Arial, Helvetica, sans-serif", label: "Arial" },
+    { value: "'Times New Roman', Times, serif", label: "Times New Roman" },
+    { value: "Georgia, serif", label: "Georgia" },
+    { value: "'Courier New', Courier, monospace", label: "Courier New" },
+    { value: "Verdana, Geneva, sans-serif", label: "Verdana" },
+    { value: "'Trebuchet MS', Helvetica, sans-serif", label: "Trebuchet MS" },
+  ];
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
@@ -468,7 +501,41 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="fontSize" className="text-right">Font Size</Label>
-            <Input id="fontSize" type="number" value={formData.fontSize || 16} onChange={e => handleChange('fontSize', parseInt(e.target.value, 10))} className="col-span-3" />
+              <Popover open={fontSizePopoverOpen} onOpenChange={setFontSizePopoverOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" className="col-span-3 justify-start">
+                        {formData.fontSize ? `${formData.fontSize}px` : "Select size"}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <div className="flex flex-col">
+                        <div className="p-2 border-b">
+                            <Input 
+                                type="text"
+                                placeholder="Custom size..."
+                                value={customFontSize}
+                                onChange={handleCustomSizeChange}
+                            />
+                        </div>
+                        <ScrollArea className="h-48">
+                          <div className="p-1">
+                            {fontSizes.map(size => (
+                                <Button 
+                                    key={size} 
+                                    variant="ghost" 
+                                    className="w-full justify-start"
+                                    onClick={() => handleFontSizeSelect(size)}
+                                    style={{ fontSize: `${size}px`}}
+                                >
+                                    <Check className={cn("mr-2 h-4 w-4", formData.fontSize === size ? "opacity-100" : "opacity-0")} />
+                                    {size}px
+                                </Button>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                    </div>
+                </PopoverContent>
+              </Popover>
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
@@ -478,14 +545,11 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
                   <SelectValue placeholder="Select a font" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="'Poppins', sans-serif">Poppins (Headline)</SelectItem>
-                  <SelectItem value="'PT Sans', sans-serif">PT Sans (Body)</SelectItem>
-                  <SelectItem value="Arial, Helvetica, sans-serif">Arial</SelectItem>
-                  <SelectItem value="'Times New Roman', Times, serif">Times New Roman</SelectItem>
-                  <SelectItem value="'Courier New', Courier, monospace">Courier New</SelectItem>
-                  <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                  <SelectItem value="Verdana, Geneva, sans-serif">Verdana</SelectItem>
-                  <SelectItem value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</SelectItem>
+                  {fontOptions.map(font => (
+                    <SelectItem key={font.value} value={font.value} style={{fontFamily: font.value}}>
+                        {font.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
           </div>
