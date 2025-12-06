@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import React from 'react';
-import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, Upload, ChevronsUpDown, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignVerticalSpaceBetween } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, Upload, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -12,17 +13,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast"
-import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/lib/types';
-import { LucideIcon } from '@/lib/icons.tsx';
+import { LucideIcon, iconList } from '@/lib/icons';
 import { cn } from '@/lib/utils';
-import { iconList } from '@/lib/icons.tsx';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = React.useState(false);
@@ -99,7 +95,8 @@ export default function HomePage() {
   };
 
   const handlePasswordSubmit = () => {
-    if (passwordInput === (config.editorPassword || 'admin')) {
+    const correctPassword = config.editorPassword || 'admin';
+    if (passwordInput === correctPassword) {
       setIsAuthenticated(true);
       setIsEditMode(true);
       setShowPasswordPrompt(false);
@@ -209,6 +206,7 @@ export default function HomePage() {
     if (!isEditMode) return;
   
     let newSelectedIds: string[];
+    // If shift is held, toggle selection for the clicked element
     if (e.shiftKey) {
       if (selectedElementIds.includes(id)) {
         newSelectedIds = selectedElementIds.filter(sid => sid !== id);
@@ -216,16 +214,19 @@ export default function HomePage() {
         newSelectedIds = [...selectedElementIds, id];
       }
     } else {
-        if (!selectedElementIds.includes(id)) {
-            newSelectedIds = [id];
-        } else {
-            newSelectedIds = selectedElementIds;
-        }
+      // If not holding shift, only select the clicked element if it's not already part of a multi-selection
+      if (!selectedElementIds.includes(id)) {
+          newSelectedIds = [id];
+      } else {
+          // If it is part of a multi-selection, do nothing, allows for dragging multiple items
+          newSelectedIds = selectedElementIds;
+      }
     }
     setSelectedElementIds(newSelectedIds);
   
     const initialPositions = new Map();
     config.elements.forEach(el => {
+      // We use `newSelectedIds` here to correctly handle the drag operation immediately after selection changes
       if (newSelectedIds.includes(el.id)) {
         initialPositions.set(el.id, { x: el.x, y: el.y });
       }
@@ -262,12 +263,14 @@ export default function HomePage() {
   
   const handleMouseUp = () => {
     if(draggingState?.isDragging) {
+        // Finalize the position update by creating a new history entry
         updateElements([...config.elements]);
         setDraggingState(null);
     }
   };
 
   const handleContainerClick = (e: React.MouseEvent) => {
+      // If the click is on the container itself and not on an element inside it
       if (e.target === mainContainerRef.current) {
           setSelectedElementIds([]);
       }
@@ -309,7 +312,7 @@ export default function HomePage() {
             selectedElementIds.includes(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
         )
     );
-  }, [isEditMode, selectedElementIds, config.elements, updateElements, editingElement, deleteElement]);
+  }, [isEditMode, selectedElementIds, config.elements, editingElement, deleteElement, updateElements]);
 
 
   React.useEffect(() => {
@@ -363,7 +366,9 @@ export default function HomePage() {
       const selectedRects = selectedElementIds.map(id => getElementRect(id)).filter((r): r is NonNullable<typeof r> => !!r);
       if (selectedRects.length < 2) return;
   
-      const anchorRect = selectedRects[0];
+      // The first selected element is the anchor
+      const anchorRect = selectedRects.find(r => r.id === selectedElementIds[0]);
+      if (!anchorRect) return;
   
       const newElements = config.elements.map(el => {
           if (!selectedElementIds.includes(el.id) || el.id === anchorRect.id) return el;
@@ -379,8 +384,7 @@ export default function HomePage() {
                 newX = anchorRect.left;
                 break;
             case 'center-h':
-                const anchorHCenter = anchorRect.left + anchorRect.width / 2;
-                newX = anchorHCenter - currentRect.width / 2;
+                newX = anchorRect.left + (anchorRect.width / 2) - (currentRect.width / 2);
                 break;
             case 'right':
                 newX = anchorRect.right - currentRect.width;
@@ -389,8 +393,7 @@ export default function HomePage() {
                 newY = anchorRect.top;
                 break;
             case 'center-v':
-                const anchorVCenter = anchorRect.top + anchorRect.height / 2;
-                newY = anchorVCenter - currentRect.height / 2;
+                newY = anchorRect.top + (anchorRect.height / 2) - (currentRect.height / 2);
                 break;
             case 'bottom':
                 newY = anchorRect.bottom - currentRect.height;
@@ -583,10 +586,10 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     { value: "'PT Sans', sans-serif", label: "PT Sans (Body)" },
     { value: "Arial, Helvetica, sans-serif", label: "Arial" },
     { value: "'Times New Roman', Times, serif", label: "Times New Roman" },
-    { value: "Georgia, serif", label: "Georgia" },
-    { value: "'Courier New', Courier, monospace", label: "Courier New" },
     { value: "Verdana, Geneva, sans-serif", label: "Verdana" },
     { value: "'Trebuchet MS', Helvetica, sans-serif", label: "Trebuchet MS" },
+    { value: "Georgia, serif", label: "Georgia" },
+    { value: "'Courier New', Courier, monospace", label: "Courier New" },
   ];
 
   const filteredIcons = iconList.filter(iconName => iconName.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -618,31 +621,35 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
                         <span className="text-sm font-medium">{formData.icon}</span>
                       </div>
                     )}
-                    <Input 
-                        placeholder="Search icons..." 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="mb-2"
-                    />
-                    <ScrollArea className="h-48 rounded-md border">
-                        <div className="p-4 grid grid-cols-6 gap-4">
-                            {filteredIcons.map((iconName) => {
-                                const isSelected = formData.icon === iconName;
-                                return (
-                                <Button
-                                    key={iconName}
-                                    ref={isSelected ? selectedIconRef : null}
-                                    variant={isSelected ? 'secondary' : 'ghost'}
-                                    onClick={() => handleChange('icon', iconName)}
-                                    className="h-auto p-2 flex flex-col items-center justify-center gap-1"
-                                >
-                                    <LucideIcon name={iconName} className="h-6 w-6" />
-                                    <span className="text-xs truncate">{iconName}</span>
-                                </Button>
-                                );
-                            })}
-                        </div>
-                    </ScrollArea>
+                    <Command className="rounded-lg border shadow-md">
+                        <CommandInput 
+                            placeholder="Search icons..." 
+                            value={searchTerm} 
+                            onValueChange={setSearchTerm}
+                        />
+                        <ScrollArea className="h-48">
+                          <CommandEmpty>No results found.</CommandEmpty>
+                          <CommandGroup>
+                            <div className="p-2 grid grid-cols-6 gap-2">
+                                {filteredIcons.map((iconName) => {
+                                    const isSelected = formData.icon === iconName;
+                                    return (
+                                    <Button
+                                        key={iconName}
+                                        ref={isSelected ? selectedIconRef : null}
+                                        variant={isSelected ? 'secondary' : 'ghost'}
+                                        onClick={() => handleChange('icon', iconName)}
+                                        className="h-auto p-2 flex flex-col items-center justify-center gap-1"
+                                    >
+                                        <LucideIcon name={iconName} className="h-6 w-6" />
+                                        <span className="text-xs w-full text-center truncate">{iconName}</span>
+                                    </Button>
+                                    );
+                                })}
+                            </div>
+                          </CommandGroup>
+                        </ScrollArea>
+                    </Command>
                 </div>
             </div>
           )}
@@ -681,3 +688,5 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
+
+    

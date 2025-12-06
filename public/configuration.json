@@ -1,6 +1,6 @@
 {
   "editorPassword": "admin",
-  "defaultRestUrl": "http://security.masjidds.org/cgi-bin/test.py",
+  "defaultRestUrl": "http://test.org/cgi-bin/test.py",
   "favicon": "",
   "elements": [
     {
