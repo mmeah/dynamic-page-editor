@@ -20,7 +20,7 @@ import { LucideIcon } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
 import { iconList } from '@/lib/icons.tsx';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check } from 'lucide-react';
 
 export default function HomePage() {
@@ -218,7 +218,6 @@ export default function HomePage() {
         if (!selectedElementIds.includes(id)) {
             newSelectedIds = [id];
         } else {
-            // If it's already selected and we are not holding shift, we might be starting a drag
             newSelectedIds = selectedElementIds;
         }
     }
@@ -262,7 +261,6 @@ export default function HomePage() {
   
   const handleMouseUp = () => {
     if(draggingState?.isDragging) {
-        // This makes sure the final positions are recorded in history
         updateElements([...config.elements]);
         setDraggingState(null);
     }
@@ -562,7 +560,7 @@ export default function HomePage() {
 
 function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
   const [formData, setFormData] = React.useState(element);
-  const [iconSearch, setIconSearch] = React.useState('');
+  const [iconPopoverOpen, setIconPopoverOpen] = React.useState(false);
 
   const handleSave = () => {
     onSave(formData);
@@ -582,8 +580,6 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     { value: "Verdana, Geneva, sans-serif", label: "Verdana" },
     { value: "'Trebuchet MS', Helvetica, sans-serif", label: "Trebuchet MS" },
   ];
-
-  const filteredIcons = iconList.filter(iconName => iconName.toLowerCase().includes(iconSearch.toLowerCase()));
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
@@ -606,54 +602,50 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
               <div className="col-span-3">
-                <Popover>
+                <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button variant="outline" role="combobox" aria-expanded={iconPopoverOpen} className="w-full justify-between">
                       {formData.icon ? (
                         <>
                           <LucideIcon name={formData.icon} className="mr-2 h-4 w-4" />
                           {formData.icon}
                         </>
                       ) : (
-                        "Select an icon"
+                        "Select icon..."
                       )}
+                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0" align="start">
-                     <div className="p-2">
-                        <Input
-                          placeholder="Search icons..."
-                          value={iconSearch}
-                          onChange={(e) => setIconSearch(e.target.value)}
-                          className="w-full"
-                        />
-                      </div>
-                      <ScrollArea className="h-48">
-                        <div className="grid grid-cols-6 gap-2 p-2">
-                          {filteredIcons.length > 0 ? filteredIcons.map(iconName => (
-                            <TooltipProvider key={iconName}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant={formData.icon === iconName ? "secondary" : "ghost"}
-                                    size="icon"
-                                    onClick={() => {
-                                      handleChange('icon', iconName === formData.icon ? '' : iconName);
-                                    }}
-                                  >
-                                    <LucideIcon name={iconName} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{iconName}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )) : (
-                            <p className="col-span-6 text-center text-sm text-muted-foreground">No icons found.</p>
-                          )}
-                        </div>
-                      </ScrollArea>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search icons..." />
+                      <CommandList>
+                        <CommandEmpty>No icon found.</CommandEmpty>
+                        <CommandGroup>
+                           <ScrollArea className="h-48">
+                              {iconList.map((iconName) => (
+                                <CommandItem
+                                  key={iconName}
+                                  value={iconName}
+                                  onSelect={(currentValue) => {
+                                    handleChange('icon', currentValue === formData.icon ? '' : currentValue)
+                                    setIconPopoverOpen(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.icon === iconName ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <LucideIcon name={iconName} className="mr-2 h-4 w-4" />
+                                  {iconName}
+                                </CommandItem>
+                              ))}
+                           </ScrollArea>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -694,7 +686,5 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
-
-    
 
     
