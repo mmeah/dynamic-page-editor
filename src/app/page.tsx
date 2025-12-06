@@ -99,7 +99,6 @@ export default function HomePage() {
   };
 
   const handlePasswordSubmit = () => {
-    // Check password from the fetched configuration.json
     if (passwordInput === (config.editorPassword || 'admin')) {
       setIsAuthenticated(true);
       setIsEditMode(true);
@@ -210,7 +209,6 @@ export default function HomePage() {
     if (!isEditMode) return;
   
     let newSelectedIds: string[];
-    // if shift is pressed, toggle selection
     if (e.shiftKey) {
       if (selectedElementIds.includes(id)) {
         newSelectedIds = selectedElementIds.filter(sid => sid !== id);
@@ -218,8 +216,7 @@ export default function HomePage() {
         newSelectedIds = [...selectedElementIds, id];
       }
     } else {
-        // if not holding shift, only select the clicked element if it's not already the only one selected
-        if (!selectedElementIds.includes(id) || selectedElementIds.length > 1) {
+        if (!selectedElementIds.includes(id)) {
             newSelectedIds = [id];
         } else {
             newSelectedIds = selectedElementIds;
@@ -615,6 +612,12 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
              <div className="grid grid-cols-4 items-start gap-4">
                 <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
                 <div className="col-span-3">
+                    {formData.icon && (
+                      <div className="mb-4 p-2 bg-muted rounded-md flex items-center gap-2">
+                        <LucideIcon name={formData.icon} className="h-6 w-6" />
+                        <span className="text-sm font-medium">{formData.icon}</span>
+                      </div>
+                    )}
                     <Input 
                         placeholder="Search icons..." 
                         value={searchTerm} 
