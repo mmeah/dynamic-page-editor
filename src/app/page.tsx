@@ -215,18 +215,14 @@ export default function HomePage() {
         newSelectedIds = [...selectedElementIds, id];
       }
     } else {
-      // If not shift-clicking and the element is not already in the selection,
-      // select only this element.
       if (!selectedElementIds.includes(id)) {
         newSelectedIds = [id];
       } else {
-        // If it's already in the selection, do nothing to prepare for drag
         newSelectedIds = selectedElementIds;
       }
     }
     setSelectedElementIds(newSelectedIds);
   
-    // Prepare for dragging
     const initialPositions = new Map();
     config.elements.forEach(el => {
       if (newSelectedIds.includes(el.id)) {
@@ -536,7 +532,7 @@ export default function HomePage() {
         </DialogContent>
       </Dialog>
       
-      {editingElement && <EditElementModal element={editingElement} onSave={handleUpdateElement} onCancel={() => setEditingElement(null)} />}
+      {editingElement && <EditElementModal element={editingElement} onSave={handleUpdateElement} onCancel={() => setEditingElement(null)} config={config}/>}
 
       <Dialog open={showJsonExport} onOpenChange={setShowJsonExport}>
         <DialogContent className="max-w-2xl">
@@ -564,9 +560,8 @@ export default function HomePage() {
   );
 }
 
-function EditElementModal({ element, onSave, onCancel }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void }) {
+function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
   const [formData, setFormData] = useState(element);
-  const [iconSearch, setIconSearch] = useState('');
 
   const handleSave = () => {
     onSave(formData);
@@ -575,10 +570,6 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
   const handleChange = (field: keyof PageElement, value: any) => {
     setFormData(prev => ({...prev, [field]: value}));
   }
-
-  const filteredIcons = iconList.filter(iconName => 
-    iconName.toLowerCase().includes(iconSearch.toLowerCase())
-  );
   
   const fontOptions = [
     { value: "'Poppins', sans-serif", label: "Poppins (Headline)" },
@@ -692,5 +683,3 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
     </Dialog>
   )
 }
-
-    
