@@ -207,25 +207,28 @@ export default function HomePage() {
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (!isEditMode) return;
   
-    // Determine the new selection
     let newSelectedIds: string[];
     if (e.shiftKey) {
-      // If shift is held, toggle the clicked element in the selection
       if (selectedElementIds.includes(id)) {
         newSelectedIds = selectedElementIds.filter(sid => sid !== id);
       } else {
         newSelectedIds = [...selectedElementIds, id];
       }
     } else {
-      // If shift is not held, select only the clicked element
-      newSelectedIds = [id];
+      // If not shift-clicking and the element is not already in the selection,
+      // select only this element.
+      if (!selectedElementIds.includes(id)) {
+        newSelectedIds = [id];
+      } else {
+        // If it's already in the selection, do nothing to prepare for drag
+        newSelectedIds = selectedElementIds;
+      }
     }
     setSelectedElementIds(newSelectedIds);
   
     // Prepare for dragging
     const initialPositions = new Map();
     config.elements.forEach(el => {
-      // We drag all elements that are in the *new* selection
       if (newSelectedIds.includes(el.id)) {
         initialPositions.set(el.id, { x: el.x, y: el.y });
       }
@@ -364,7 +367,8 @@ export default function HomePage() {
       const selectedRects = selectedElementIds.map(id => getElementRect(id)).filter((r): r is NonNullable<typeof r> => !!r);
       if (selectedRects.length < 2) return;
   
-      const anchorRect = selectedRects[0];
+      const anchorRect = selectedRects.find(r => r.id === selectedElementIds[0]);
+      if (!anchorRect) return;
   
       const newElements = config.elements.map(el => {
           if (!selectedElementIds.includes(el.id)) return el;
