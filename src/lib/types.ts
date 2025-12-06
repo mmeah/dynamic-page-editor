@@ -24,3 +24,9 @@ export interface ContextMenuData {
   y: number;
   elementId?: string;
 }
+
+export interface PageConfig {
+  editorPassword?: string;
+  pageTitle?: string;
+  elements: PageElement[];
+}

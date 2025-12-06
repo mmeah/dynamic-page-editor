@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'Dynamic Page Editor',
+  title: 'Dynamic Page',
   description: 'Create and customize your own dynamic page.',
 };
 

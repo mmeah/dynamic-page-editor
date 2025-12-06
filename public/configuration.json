@@ -1,1 +1,17 @@
-[]
+{
+  "editorPassword": "admin",
+  "pageTitle": "Dynamic Page Editor",
+  "elements": [
+    {
+      "id": "1765037712481",
+      "type": "icon",
+      "x": 32,
+      "y": 29,
+      "icon": "Home",
+      "color": "#16769c",
+      "fontSize": 16,
+      "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle"
+    }
+  ]
+}

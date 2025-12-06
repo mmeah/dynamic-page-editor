@@ -13,10 +13,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { EDITOR_PASSWORD, DEFAULT_REST_URL } from '@/lib/config';
-import type { PageElement, ContextMenuData, ElementStatus } from '@/lib/types';
+import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/lib/types';
 import { LucideIcon, iconList } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
+
+const DEFAULT_REST_URL = "http://security.masjidds.org/cgi-bin/test.py";
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -24,7 +25,7 @@ export default function HomePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  const [elements, setElements] = useState<PageElement[]>([]);
+  const [config, setConfig] = useState<PageConfig>({ pageTitle: 'Loading...', editorPassword: '', elements: [] });
   const [contextMenu, setContextMenu] = useState<ContextMenuData>({ visible: false, x: 0, y: 0 });
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [showJsonExport, setShowJsonExport] = useState(false);
@@ -39,8 +40,12 @@ export default function HomePage() {
     const fetchConfig = async () => {
       try {
         const res = await fetch('/configuration.json');
+        if (!res.ok) {
+          throw new Error(`Failed to fetch configuration: ${res.statusText}`);
+        }
         const data = await res.json();
-        setElements(data);
+        setConfig(data);
+        document.title = data.pageTitle;
       } catch (error) {
         console.error("Failed to load configuration.json", error);
         toast({
@@ -66,7 +71,7 @@ export default function HomePage() {
   };
 
   const handlePasswordSubmit = () => {
-    if (passwordInput === EDITOR_PASSWORD) {
+    if (passwordInput === config.editorPassword) {
       setIsAuthenticated(true);
       setIsEditMode(true);
       setShowPasswordPrompt(false);
@@ -91,6 +96,10 @@ export default function HomePage() {
   const closeContextMenu = useCallback(() => {
     setContextMenu({ visible: false, x: 0, y: 0 });
   }, []);
+  
+  const updateElements = (newElements: PageElement[]) => {
+    setConfig(prev => ({...prev, elements: newElements}));
+  }
 
   const addElement = (type: PageElement['type']) => {
     const newElement: PageElement = {
@@ -98,7 +107,7 @@ export default function HomePage() {
       type,
       x: contextMenu.x,
       y: contextMenu.y,
-      text: type === 'text' ? 'New Text' : 'New Button',
+      text: type === 'text' ? 'New Text' : undefined,
       icon: type === 'icon' ? 'Smile' : undefined,
       url: type === 'button' ? DEFAULT_REST_URL : undefined,
       color: '#87CEEB',
@@ -106,25 +115,28 @@ export default function HomePage() {
       fontFamily: "'PT Sans', sans-serif",
       status: 'idle',
     };
+    if (newElement.type === 'button') {
+        newElement.text = 'New Button';
+    }
     if (mainContainerRef.current) {
       const rect = mainContainerRef.current.getBoundingClientRect();
       newElement.x -= rect.left;
       newElement.y -= rect.top;
     }
-    setElements(prev => [...prev, newElement]);
+    updateElements([...config.elements, newElement]);
     closeContextMenu();
   };
 
   const deleteElement = () => {
     if (contextMenu.elementId) {
-      setElements(prev => prev.filter(el => el.id !== contextMenu.elementId));
+      updateElements(config.elements.filter(el => el.id !== contextMenu.elementId));
     }
     closeContextMenu();
   };
 
   const openEditModal = () => {
     if (contextMenu.elementId) {
-      const elementToEdit = elements.find(el => el.id === contextMenu.elementId);
+      const elementToEdit = config.elements.find(el => el.id === contextMenu.elementId);
       if (elementToEdit) {
         setEditingElement(elementToEdit);
       }
@@ -133,24 +145,24 @@ export default function HomePage() {
   };
 
   const handleUpdateElement = (updatedElement: PageElement) => {
-    setElements(prev => prev.map(el => (el.id === updatedElement.id ? updatedElement : el)));
+    updateElements(config.elements.map(el => (el.id === updatedElement.id ? updatedElement : el)));
     setEditingElement(null);
   };
   
   const handleJsonImport = () => {
     try {
-      const parsedElements = JSON.parse(jsonInput);
-      if (Array.isArray(parsedElements)) {
-        // Basic validation can be improved with Zod or similar
-        setElements(parsedElements);
+      const parsedConfig = JSON.parse(jsonInput);
+      if (parsedConfig && typeof parsedConfig === 'object' && Array.isArray(parsedConfig.elements)) {
+        setConfig(parsedConfig);
+        document.title = parsedConfig.pageTitle || 'Dynamic Page';
         setShowJsonImport(false);
         setJsonInput('');
         toast({
           title: "Configuration Loaded",
-          description: "Page elements have been updated.",
+          description: "Page has been updated.",
         });
       } else {
-        throw new Error("Invalid format: Configuration must be an array of elements.");
+        throw new Error("Invalid format: Configuration must be a valid JSON object with an 'elements' array.");
       }
     } catch (error) {
       toast({
@@ -165,7 +177,7 @@ export default function HomePage() {
     if (isEditMode || !element.url) return;
 
     const updateStatus = (id: string, status: ElementStatus) => {
-      setElements(prev => prev.map(el => (el.id === id ? { ...el, status } : el)));
+      updateElements(config.elements.map(el => (el.id === id ? { ...el, status } : el)));
     };
 
     updateStatus(element.id, 'loading');
@@ -200,15 +212,17 @@ export default function HomePage() {
     let newY = e.clientY - mainRect.top - draggingElement.offsetY;
 
     // Constrain within parent
-    const element = elements.find(el => el.id === draggingElement.id);
-    const elementWidth = (e.currentTarget as HTMLElement).querySelector(`[data-element-id="${draggingElement.id}"]`)?.clientWidth || 100;
-    const elementHeight = (e.currentTarget as HTMLElement).querySelector(`[data-element-id="${draggingElement.id}"]`)?.clientHeight || 40;
+    const elementOnPage = document.querySelector(`[data-element-id="${draggingElement.id}"]`);
+    if (!elementOnPage) return;
+
+    const elementWidth = elementOnPage.clientWidth || 100;
+    const elementHeight = elementOnPage.clientHeight || 40;
 
     newX = Math.max(0, Math.min(newX, mainRect.width - elementWidth));
     newY = Math.max(0, Math.min(newY, mainRect.height - elementHeight));
-
-    setElements(prev =>
-      prev.map(el => (el.id === draggingElement.id ? { ...el, x: newX, y: newY } : el))
+    
+    updateElements(
+        config.elements.map(el => (el.id === draggingElement.id ? { ...el, x: newX, y: newY } : el))
     );
   };
   
@@ -241,7 +255,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col h-screen bg-background" onClick={closeContextMenu}>
       <header className="flex items-center justify-between p-4 border-b bg-card">
-        <h1 className="text-2xl font-headline font-bold">Dynamic Page Editor</h1>
+        <h1 className="text-2xl font-headline font-bold">{config.pageTitle}</h1>
         <div className="flex items-center gap-4">
           {isEditMode && (
             <div className="flex items-center gap-2">
@@ -267,7 +281,7 @@ export default function HomePage() {
           backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
         }}
       >
-        {elements.map(element => (
+        {config.elements.map(element => (
           <div
             key={element.id}
             data-element-id={element.id}
@@ -362,10 +376,10 @@ export default function HomePage() {
           <p className="text-sm text-muted-foreground">Copy this JSON and save it to `public/configuration.json` to persist your changes.</p>
           <div className="relative">
             <pre className="bg-muted p-4 rounded-md text-sm max-h-[50vh] overflow-auto">
-                <code>{JSON.stringify(elements, null, 2)}</code>
+                <code>{JSON.stringify(config, null, 2)}</code>
             </pre>
             <Button size="sm" className="absolute top-2 right-2" onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(elements, null, 2));
+                navigator.clipboard.writeText(JSON.stringify(config, null, 2));
                 toast({ title: "Copied to clipboard!" });
             }}>
                 <Copy className="h-4 w-4"/>
