@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, Upload } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, Upload, ChevronsUpDown } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -20,6 +20,7 @@ import { LucideIcon } from '@/lib/icons.tsx';
 import { cn } from '@/lib/utils';
 import { iconList } from '@/lib/icons.tsx';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check } from 'lucide-react';
 
 const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72];
@@ -34,7 +35,6 @@ export default function HomePage() {
   const [contextMenu, setContextMenu] = useState<ContextMenuData>({ visible: false, x: 0, y: 0 });
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [showJsonExport, setShowJsonExport] = useState(false);
-  const [jsonInput, setJsonInput] = useState('');
   const [draggingElement, setDraggingElement] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -85,11 +85,14 @@ export default function HomePage() {
       setShowPasswordPrompt(true);
     } else {
       setIsEditMode(checked);
+      if (!checked) {
+        // Do not reset isAuthenticated when turning edit mode off
+      }
     }
   };
 
   const handlePasswordSubmit = () => {
-    if (passwordInput === config.editorPassword) {
+    if (passwordInput === (config.editorPassword || 'admin')) {
       setIsAuthenticated(true);
       setIsEditMode(true);
       setShowPasswordPrompt(false);
@@ -259,23 +262,15 @@ export default function HomePage() {
           backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
         }}
       >
-        {isEditMode && (
-            <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
+          {isEditMode && (
               <Button onClick={() => setShowJsonExport(true)}><Copy className="mr-2 h-4 w-4" /> Copy Config</Button>
-               <div className="flex items-center space-x-2 bg-card p-2 rounded-lg border">
-                <Switch id="edit-mode-toggle" checked={isEditMode} onCheckedChange={handleEditModeToggle} />
-                <Label htmlFor="edit-mode-toggle">Edit Mode</Label>
-              </div>
-            </div>
-        )}
-        {!isEditMode && (
-             <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
-                <div className="flex items-center space-x-2 bg-card p-2 rounded-lg border">
-                    <Switch id="edit-mode-toggle" checked={isEditMode} onCheckedChange={handleEditModeToggle} />
-                    <Label htmlFor="edit-mode-toggle">Edit Mode</Label>
-                </div>
-            </div>
-        )}
+          )}
+          <div className="flex items-center space-x-2 bg-card p-2 rounded-lg border">
+            <Switch id="edit-mode-toggle" checked={isEditMode} onCheckedChange={handleEditModeToggle} />
+            <Label htmlFor="edit-mode-toggle">Edit Mode</Label>
+          </div>
+        </div>
 
         {config.elements.map(element => (
           <div
@@ -396,31 +391,13 @@ export default function HomePage() {
 function EditElementModal({ element, onSave, onCancel }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void }) {
   const [formData, setFormData] = useState(element);
   const [iconSearch, setIconSearch] = useState('');
-  const [fontSizePopoverOpen, setFontSizePopoverOpen] = useState(false);
-  const [customFontSize, setCustomFontSize] = useState(element.fontSize?.toString() || '16');
-
 
   const handleSave = () => {
-    onSave({...formData, fontSize: parseInt(customFontSize, 10) || formData.fontSize});
+    onSave(formData);
   };
 
   const handleChange = (field: keyof PageElement, value: any) => {
     setFormData(prev => ({...prev, [field]: value}));
-  }
-
-  const handleFontSizeSelect = (size: number) => {
-    handleChange('fontSize', size);
-    setCustomFontSize(size.toString());
-    setFontSizePopoverOpen(false);
-  }
-  
-  const handleCustomSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCustomFontSize(value);
-    const intValue = parseInt(value, 10);
-    if (!isNaN(intValue)) {
-        handleChange('fontSize', intValue);
-    }
   }
 
   const filteredIcons = iconList.filter(iconName => 
@@ -501,41 +478,7 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="fontSize" className="text-right">Font Size</Label>
-              <Popover open={fontSizePopoverOpen} onOpenChange={setFontSizePopoverOpen}>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" className="col-span-3 justify-start">
-                        {formData.fontSize ? `${formData.fontSize}px` : "Select size"}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <div className="flex flex-col">
-                        <div className="p-2 border-b">
-                            <Input 
-                                type="text"
-                                placeholder="Custom size..."
-                                value={customFontSize}
-                                onChange={handleCustomSizeChange}
-                            />
-                        </div>
-                        <ScrollArea className="h-48">
-                          <div className="p-1">
-                            {fontSizes.map(size => (
-                                <Button 
-                                    key={size} 
-                                    variant="ghost" 
-                                    className="w-full justify-start"
-                                    onClick={() => handleFontSizeSelect(size)}
-                                    style={{ fontSize: `${size}px`}}
-                                >
-                                    <Check className={cn("mr-2 h-4 w-4", formData.fontSize === size ? "opacity-100" : "opacity-0")} />
-                                    {size}px
-                                </Button>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                    </div>
-                </PopoverContent>
-              </Popover>
+             <Input id="fontSize" type="number" value={formData.fontSize || ''} onChange={e => handleChange('fontSize', parseInt(e.target.value, 10))} className="col-span-3" />
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
@@ -561,5 +504,3 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
     </Dialog>
   )
 }
-
-    
