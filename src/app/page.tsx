@@ -284,13 +284,15 @@ export default function HomePage() {
 
   const handleTouchStart = (e: React.TouchEvent, id: string) => {
     if (!isEditMode) return;
-    e.preventDefault(); // Prevent scrolling
     const touch = e.touches[0];
     
-    longPressTimeoutRef.current = setTimeout(() => {
-        handleDragStart(id, touch.clientX, touch.clientY, e.shiftKey);
-        longPressTimeoutRef.current = null;
-    }, LONG_PRESS_DURATION);
+    // Prevent default to avoid scrolling and other interferences
+    if (e.touches.length === 1) {
+      longPressTimeoutRef.current = setTimeout(() => {
+          handleDragStart(id, touch.clientX, touch.clientY, e.shiftKey);
+          longPressTimeoutRef.current = null; // Clear timeout after it has run
+      }, LONG_PRESS_DURATION);
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -298,13 +300,21 @@ export default function HomePage() {
         clearTimeout(longPressTimeoutRef.current);
         longPressTimeoutRef.current = null;
     }
-    const touch = e.touches[0];
-    handleDragMove(touch.clientX, touch.clientY);
+    if (draggingState?.isDragging) {
+        e.preventDefault(); // Prevent scrolling while dragging
+        const touch = e.touches[0];
+        handleDragMove(touch.clientX, touch.clientY);
+    }
   };
 
   const handleTouchEnd = () => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
     handleDragEnd();
   };
+
 
   const handleContainerClick = (e: React.MouseEvent) => {
       if (e.target === mainContainerRef.current) {
@@ -473,12 +483,12 @@ export default function HomePage() {
         {isEditMode && selectedElementIds.length > 1 && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-card p-1 rounded-lg border flex items-center gap-1">
                 <TooltipProvider>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('left')}><AlignStartVertical/></Button></TooltipTrigger><TooltipContent><p>Align Left</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-h')}><AlignCenterVertical/></Button></TooltipTrigger><TooltipContent><p>Align Center Horizontally</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('right')}><AlignEndVertical/></Button></TooltipTrigger><TooltipContent><p>Align Right</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('top')}><AlignStartHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Top</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-v')}><AlignCenterHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Center Vertically</p></TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('bottom')}><AlignEndHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Bottom</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('left')}><AlignStartHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Left</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-h')}><AlignCenterHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Center Horizontally</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('right')}><AlignEndHorizontal/></Button></TooltipTrigger><TooltipContent><p>Align Right</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('top')}><AlignStartVertical/></Button></TooltipTrigger><TooltipContent><p>Align Top</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('center-v')}><AlignCenterVertical/></Button></TooltipTrigger><TooltipContent><p>Align Center Vertically</p></TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => alignElements('bottom')}><AlignEndVertical/></Button></TooltipTrigger><TooltipContent><p>Align Bottom</p></TooltipContent></Tooltip>
                 </TooltipProvider>
             </div>
         )}
