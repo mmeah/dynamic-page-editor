@@ -97,7 +97,6 @@ export default function HomePage() {
   };
 
   const handlePasswordSubmit = () => {
-    // Ensure we are checking against the loaded config, not initial state
     const correctPassword = config.editorPassword || 'admin';
     if (passwordInput === correctPassword) {
       setIsAuthenticated(true);
@@ -640,7 +639,9 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     { value: "'Courier New', Courier, monospace", label: "Courier New" },
   ];
 
-  const filteredIcons = iconList.filter(iconName => iconName.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredIcons = iconList.filter(iconName =>
+    iconName.toLowerCase().includes(searchTerm.toLowerCase().replace(/\s/g, ''))
+  );
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
@@ -736,3 +737,6 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
+
+
+    
