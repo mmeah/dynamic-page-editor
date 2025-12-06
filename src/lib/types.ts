@@ -31,6 +31,7 @@ export interface ContextMenuData {
 export interface PageConfig {
   editorPassword?: string;
   defaultRestUrl?: string;
+  defaultImageUrl?: string;
   favicon?: string;
   elements: PageElement[];
 }

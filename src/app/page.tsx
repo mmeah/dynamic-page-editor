@@ -148,7 +148,7 @@ export default function HomePage() {
       zIndex: maxZIndex + 1,
       text: type === 'text' ? 'New Text' : undefined,
       icon: type === 'icon' ? 'Smile' : undefined,
-      src: type === 'image' ? `https://picsum.photos/seed/${Date.now()}/200/300` : undefined,
+      src: type === 'image' ? (config.defaultImageUrl || `https://picsum.photos/seed/${Date.now()}/200/300`) : undefined,
       width: type === 'image' ? 200 : undefined,
       height: type === 'image' ? 300 : undefined,
       aspectRatio: type === 'image' ? 200/300 : undefined,
@@ -890,5 +890,3 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
-
-    
