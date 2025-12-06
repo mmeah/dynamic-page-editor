@@ -611,7 +611,6 @@ export default function HomePage() {
 
 function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
   const [formData, setFormData] = React.useState(element);
-  const [searchTerm, setSearchTerm] = React.useState('');
   const selectedIconRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
@@ -638,10 +637,6 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     { value: "Georgia, serif", label: "Georgia" },
     { value: "'Courier New', Courier, monospace", label: "Courier New" },
   ];
-
-  const filteredIcons = iconList.filter(iconName =>
-    iconName.toLowerCase().includes(searchTerm.toLowerCase().replace(/\s/g, ''))
-  );
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
@@ -670,35 +665,25 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
                         <span className="text-sm font-medium">{formData.icon}</span>
                       </div>
                     )}
-                    <Command className="rounded-lg border shadow-md">
-                        <CommandInput 
-                            placeholder="Search icons..." 
-                            value={searchTerm} 
-                            onValueChange={setSearchTerm}
-                        />
-                        <ScrollArea className="h-48">
-                          <CommandEmpty>No results found.</CommandEmpty>
-                          <CommandGroup>
-                            <div className="p-2 grid grid-cols-6 gap-2">
-                                {filteredIcons.map((iconName) => {
-                                    const isSelected = formData.icon === iconName;
-                                    return (
-                                    <Button
-                                        key={iconName}
-                                        ref={isSelected ? selectedIconRef : null}
-                                        variant={isSelected ? 'secondary' : 'ghost'}
-                                        onClick={() => handleChange('icon', iconName)}
-                                        className="h-auto p-2 flex flex-col items-center justify-center gap-1"
-                                    >
-                                        <LucideIcon name={iconName} className="h-6 w-6" />
-                                        <span className="text-xs w-full text-center truncate">{iconName}</span>
-                                    </Button>
-                                    );
-                                })}
-                            </div>
-                          </CommandGroup>
-                        </ScrollArea>
-                    </Command>
+                    <ScrollArea className="h-48 rounded-lg border shadow-md">
+                      <div className="p-2 grid grid-cols-6 gap-2">
+                          {iconList.map((iconName) => {
+                              const isSelected = formData.icon === iconName;
+                              return (
+                              <Button
+                                  key={iconName}
+                                  ref={isSelected ? selectedIconRef : null}
+                                  variant={isSelected ? 'secondary' : 'ghost'}
+                                  onClick={() => handleChange('icon', iconName)}
+                                  className="h-auto p-2 flex flex-col items-center justify-center gap-1"
+                              >
+                                  <LucideIcon name={iconName} className="h-6 w-6" />
+                                  <span className="text-xs w-full text-center truncate">{iconName}</span>
+                              </Button>
+                              );
+                          })}
+                      </div>
+                    </ScrollArea>
                 </div>
             </div>
           )}
