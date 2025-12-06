@@ -3,7 +3,7 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, Upload, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Copy, Plus, Trash2, Edit, Save, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/lib/types';
@@ -38,9 +38,11 @@ export default function HomePage() {
     startY: number;
   } | null>(null);
   const mainContainerRef = React.useRef<HTMLDivElement>(null);
+  const longPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const NUDGE_AMOUNT = 1;
+  const LONG_PRESS_DURATION = 300;
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -95,6 +97,7 @@ export default function HomePage() {
   };
 
   const handlePasswordSubmit = () => {
+    // Ensure we are checking against the loaded config, not initial state
     const correctPassword = config.editorPassword || 'admin';
     if (passwordInput === correctPassword) {
       setIsAuthenticated(true);
@@ -201,51 +204,46 @@ export default function HomePage() {
 
     setTimeout(() => updateStatus(element.id, 'idle'), 2000);
   };
-  
-  const handleMouseDown = (e: React.MouseEvent, id: string) => {
+
+  const handleDragStart = (id: string, clientX: number, clientY: number, shiftKey = false) => {
     if (!isEditMode) return;
-  
+
     let newSelectedIds: string[];
-    // If shift is held, toggle selection for the clicked element
-    if (e.shiftKey) {
+    if (shiftKey) {
       if (selectedElementIds.includes(id)) {
         newSelectedIds = selectedElementIds.filter(sid => sid !== id);
       } else {
         newSelectedIds = [...selectedElementIds, id];
       }
     } else {
-      // If not holding shift, only select the clicked element if it's not already part of a multi-selection
       if (!selectedElementIds.includes(id)) {
-          newSelectedIds = [id];
+        newSelectedIds = [id];
       } else {
-          // If it is part of a multi-selection, do nothing, allows for dragging multiple items
-          newSelectedIds = selectedElementIds;
+        newSelectedIds = selectedElementIds;
       }
     }
     setSelectedElementIds(newSelectedIds);
-  
+
     const initialPositions = new Map();
     config.elements.forEach(el => {
-      // We use `newSelectedIds` here to correctly handle the drag operation immediately after selection changes
       if (newSelectedIds.includes(el.id)) {
         initialPositions.set(el.id, { x: el.x, y: el.y });
       }
     });
-  
+
     setDraggingState({
       isDragging: true,
       initialPositions,
-      startX: e.clientX,
-      startY: e.clientY,
+      startX: clientX,
+      startY: clientY,
     });
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleDragMove = (clientX: number, clientY: number) => {
     if (!draggingState || !draggingState.isDragging || !mainContainerRef.current) return;
-    e.preventDefault();
 
-    const dx = e.clientX - draggingState.startX;
-    const dy = e.clientY - draggingState.startY;
+    const dx = clientX - draggingState.startX;
+    const dy = clientY - draggingState.startY;
 
     updateElements(
       config.elements.map(el => {
@@ -257,20 +255,58 @@ export default function HomePage() {
         }
         return el;
       }),
-      true // Skip history for smoother dragging
+      true
     );
   };
-  
-  const handleMouseUp = () => {
-    if(draggingState?.isDragging) {
-        // Finalize the position update by creating a new history entry
-        updateElements([...config.elements]);
-        setDraggingState(null);
+
+  const handleDragEnd = () => {
+    if (draggingState?.isDragging) {
+      updateElements([...config.elements]);
+      setDraggingState(null);
+    }
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
     }
   };
 
+  const handleMouseDown = (e: React.MouseEvent, id: string) => {
+    handleDragStart(id, e.clientX, e.clientY, e.shiftKey);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    handleDragMove(e.clientX, e.clientY);
+  };
+
+  const handleMouseUp = () => {
+    handleDragEnd();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, id: string) => {
+    if (!isEditMode) return;
+    e.preventDefault(); // Prevent scrolling
+    const touch = e.touches[0];
+    
+    longPressTimeoutRef.current = setTimeout(() => {
+        handleDragStart(id, touch.clientX, touch.clientY, e.shiftKey);
+        longPressTimeoutRef.current = null;
+    }, LONG_PRESS_DURATION);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (longPressTimeoutRef.current) {
+        clearTimeout(longPressTimeoutRef.current);
+        longPressTimeoutRef.current = null;
+    }
+    const touch = e.touches[0];
+    handleDragMove(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchEnd = () => {
+    handleDragEnd();
+  };
+
   const handleContainerClick = (e: React.MouseEvent) => {
-      // If the click is on the container itself and not on an element inside it
       if (e.target === mainContainerRef.current) {
           setSelectedElementIds([]);
       }
@@ -361,49 +397,48 @@ export default function HomePage() {
   };
 
   const alignElements = (alignment: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom') => {
-      if (selectedElementIds.length < 2) return;
-  
-      const selectedRects = selectedElementIds.map(id => getElementRect(id)).filter((r): r is NonNullable<typeof r> => !!r);
-      if (selectedRects.length < 2) return;
-  
-      // The first selected element is the anchor
-      const anchorRect = selectedRects.find(r => r.id === selectedElementIds[0]);
-      if (!anchorRect) return;
-  
-      const newElements = config.elements.map(el => {
-          if (!selectedElementIds.includes(el.id) || el.id === anchorRect.id) return el;
-          
-          const currentRect = selectedRects.find(item => item.id === el.id);
-          if (!currentRect) return el;
-  
-          let newX = el.x;
-          let newY = el.y;
-  
-          switch (alignment) {
-            case 'left':
-                newX = anchorRect.left;
-                break;
-            case 'center-h':
-                newX = anchorRect.left + (anchorRect.width / 2) - (currentRect.width / 2);
-                break;
-            case 'right':
-                newX = anchorRect.right - currentRect.width;
-                break;
-            case 'top':
-                newY = anchorRect.top;
-                break;
-            case 'center-v':
-                newY = anchorRect.top + (anchorRect.height / 2) - (currentRect.height / 2);
-                break;
-            case 'bottom':
-                newY = anchorRect.bottom - currentRect.height;
-                break;
-        }
-          return { ...el, x: newX, y: newY };
-      });
-  
-      updateElements(newElements);
-  };
+    if (selectedElementIds.length < 2) return;
+
+    const selectedRects = selectedElementIds.map(id => getElementRect(id)).filter((r): r is NonNullable<typeof r> => !!r);
+    if (selectedRects.length < 2) return;
+
+    const anchorRect = selectedRects.find(r => r.id === selectedElementIds[0]);
+    if (!anchorRect) return;
+
+    const newElements = config.elements.map(el => {
+        if (!selectedElementIds.includes(el.id) || el.id === anchorRect.id) return el;
+        
+        const currentRect = selectedRects.find(item => item.id === el.id);
+        if (!currentRect) return el;
+
+        let newX = el.x;
+        let newY = el.y;
+
+        switch (alignment) {
+          case 'left':
+              newX = anchorRect.left;
+              break;
+          case 'center-h':
+              newX = anchorRect.left + (anchorRect.width / 2) - (currentRect.width / 2);
+              break;
+          case 'right':
+              newX = anchorRect.right - currentRect.width;
+              break;
+          case 'top':
+              newY = anchorRect.top;
+              break;
+          case 'center-v':
+              newY = anchorRect.top + (anchorRect.height / 2) - (currentRect.height / 2);
+              break;
+          case 'bottom':
+              newY = anchorRect.bottom - currentRect.height;
+              break;
+      }
+        return { ...el, x: newX, y: newY };
+    });
+
+    updateElements(newElements);
+};
   
   if (!isMounted) {
     return null; 
@@ -417,6 +452,8 @@ export default function HomePage() {
         onContextMenu={handleContextMenu}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onClick={handleContainerClick}
         style={{
           backgroundSize: '20px 20px',
@@ -451,6 +488,7 @@ export default function HomePage() {
             key={element.id}
             data-element-id={element.id}
             onMouseDown={(e) => handleMouseDown(e, element.id)}
+            onTouchStart={(e) => handleTouchStart(e, element.id)}
             style={{ 
                 position: 'absolute', 
                 left: element.x, 
@@ -569,7 +607,7 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
 
   React.useEffect(() => {
     if (selectedIconRef.current) {
-      selectedIconRef.current.scrollIntoView({ block: 'center' });
+      selectedIconRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
   }, []);
 
@@ -688,5 +726,3 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
-
-    
