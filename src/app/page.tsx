@@ -92,7 +92,6 @@ export default function HomePage() {
     } else {
       setIsEditMode(checked);
       if (!checked) {
-        // Do not reset isAuthenticated when turning edit mode off
         setSelectedElementIds([]);
       }
     }
@@ -207,24 +206,31 @@ export default function HomePage() {
   
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (!isEditMode) return;
-
+  
+    // Determine the new selection
+    let newSelectedIds: string[];
     if (e.shiftKey) {
-        setSelectedElementIds(prev => 
-            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
-        );
+      // If shift is held, toggle the clicked element in the selection
+      if (selectedElementIds.includes(id)) {
+        newSelectedIds = selectedElementIds.filter(sid => sid !== id);
+      } else {
+        newSelectedIds = [...selectedElementIds, id];
+      }
     } else {
-        if (!selectedElementIds.includes(id)) {
-            setSelectedElementIds([id]);
-        }
+      // If shift is not held, select only the clicked element
+      newSelectedIds = [id];
     }
-
+    setSelectedElementIds(newSelectedIds);
+  
+    // Prepare for dragging
     const initialPositions = new Map();
     config.elements.forEach(el => {
-        if (selectedElementIds.includes(el.id) || id === el.id) {
-            initialPositions.set(el.id, { x: el.x, y: el.y });
-        }
+      // We drag all elements that are in the *new* selection
+      if (newSelectedIds.includes(el.id)) {
+        initialPositions.set(el.id, { x: el.x, y: el.y });
+      }
     });
-
+  
     setDraggingState({
       isDragging: true,
       initialPositions,
@@ -256,6 +262,8 @@ export default function HomePage() {
   
   const handleMouseUp = () => {
     if(draggingState?.isDragging) {
+        // This makes sure the final positions are recorded in history
+        updateElements([...config.elements]);
         setDraggingState(null);
     }
   };
@@ -268,7 +276,7 @@ export default function HomePage() {
   }
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!isEditMode || selectedElementIds.length === 0) return;
+    if (!isEditMode || selectedElementIds.length === 0 || editingElement) return;
 
     let dx = 0;
     let dy = 0;
@@ -286,6 +294,11 @@ export default function HomePage() {
         case 'ArrowRight':
             dx = NUDGE_AMOUNT;
             break;
+        case 'Delete':
+        case 'Backspace':
+            e.preventDefault();
+            deleteElement();
+            return;
         default:
             return;
     }
@@ -297,7 +310,7 @@ export default function HomePage() {
             selectedElementIds.includes(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
         )
     );
-  }, [isEditMode, selectedElementIds, config.elements, updateElements]);
+  }, [isEditMode, selectedElementIds, config.elements, updateElements, editingElement]);
 
 
   useEffect(() => {
@@ -327,36 +340,41 @@ export default function HomePage() {
   };
 
   const getElementRect = (elementId: string) => {
-    const el = document.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement;
-    if (!el) return null;
+    if (!mainContainerRef.current) return null;
+    const el = config.elements.find(e => e.id === elementId);
+    const domEl = mainContainerRef.current.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement;
+    if (!el || !domEl) return null;
+    
     return {
-      left: el.offsetLeft,
-      top: el.offsetTop,
-      width: el.offsetWidth,
-      height: el.offsetHeight,
-      right: el.offsetLeft + el.offsetWidth,
-      bottom: el.offsetTop + el.offsetHeight,
+      id: elementId,
+      x: el.x,
+      y: el.y,
+      width: domEl.offsetWidth,
+      height: domEl.offsetHeight,
+      left: el.x,
+      top: el.y,
+      right: el.x + domEl.offsetWidth,
+      bottom: el.y + domEl.offsetHeight,
     };
   };
 
   const alignElements = (alignment: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom') => {
       if (selectedElementIds.length < 2) return;
-
-      const selectedRects = selectedElementIds.map(id => ({ id, rect: getElementRect(id) })).filter(item => item.rect);
+  
+      const selectedRects = selectedElementIds.map(id => getElementRect(id)).filter((r): r is NonNullable<typeof r> => !!r);
       if (selectedRects.length < 2) return;
-
-      const anchorRect = selectedRects[0].rect!;
-
+  
+      const anchorRect = selectedRects[0];
+  
       const newElements = config.elements.map(el => {
           if (!selectedElementIds.includes(el.id)) return el;
           
-          const currentItem = selectedRects.find(item => item.id === el.id);
-          if (!currentItem || !currentItem.rect) return el;
-
-          const currentRect = currentItem.rect;
+          const currentRect = selectedRects.find(item => item.id === el.id);
+          if (!currentRect) return el;
+  
           let newX = el.x;
           let newY = el.y;
-
+  
           switch (alignment) {
               case 'left':
                   newX = anchorRect.left;
@@ -365,8 +383,8 @@ export default function HomePage() {
                   newX = anchorRect.right - currentRect.width;
                   break;
               case 'center-h':
-                  const anchorCenter = anchorRect.left + anchorRect.width / 2;
-                  newX = anchorCenter - currentRect.width / 2;
+                  const anchorHCenter = anchorRect.left + anchorRect.width / 2;
+                  newX = anchorHCenter - currentRect.width / 2;
                   break;
               case 'top':
                   newY = anchorRect.top;
@@ -381,7 +399,7 @@ export default function HomePage() {
           }
           return { ...el, x: newX, y: newY };
       });
-
+  
       updateElements(newElements);
   };
   
@@ -586,41 +604,52 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
             <Input id="url" value={formData.url || ''} onChange={e => handleChange('url', e.target.value)} className="col-span-3" placeholder="Optional: REST API endpoint"/>
           </div>
           
-          {(formData.type === 'button' || formData.type === 'icon') && (
+          {(formData.type === 'button' || formData.type === 'icon' || formData.type === 'text') && (
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
               <div className="col-span-3">
-                <Input 
-                  id="icon-search"
-                  placeholder="Search icons..."
-                  value={iconSearch}
-                  onChange={e => setIconSearch(e.target.value)}
-                  className="mb-2"
-                />
-                <TooltipProvider>
-                  <ScrollArea className="h-40 w-full rounded-md border">
-                    <div className="p-4 grid grid-cols-6 gap-2">
-                      {filteredIcons.map(iconName => (
-                        <Tooltip key={iconName}>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant={formData.icon === iconName ? 'secondary' : 'ghost'}
-                              size="icon"
-                              onClick={() => handleChange('icon', iconName)}
-                              className={cn("border", formData.icon === iconName && "border-primary")}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      {formData.icon ? (
+                        <>
+                          <LucideIcon name={formData.icon} className="mr-2 h-4 w-4" />
+                          {formData.icon}
+                        </>
+                      ) : (
+                        "Select an icon"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search icons..." />
+                      <CommandEmpty>No icons found.</CommandEmpty>
+                      <CommandGroup>
+                        <ScrollArea className="h-48">
+                          {iconList.map(iconName => (
+                            <CommandItem
+                              key={iconName}
+                              value={iconName}
+                              onSelect={(currentValue) => {
+                                handleChange('icon', currentValue === formData.icon ? '' : currentValue)
+                              }}
                             >
-                              <LucideIcon name={iconName} />
-                            </Button>                          
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{iconName}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </TooltipProvider>
-                 {formData.icon && <p className="text-sm text-muted-foreground mt-2">Selected: {formData.icon}</p>}
+                               <LucideIcon name={iconName} className="mr-2 h-4 w-4" />
+                              <span>{iconName}</span>
+                              <Check
+                                className={cn(
+                                  "ml-auto h-4 w-4",
+                                  formData.icon === iconName ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </ScrollArea>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           )}
@@ -652,7 +681,8 @@ function EditElementModal({ element, onSave, onCancel }: { element: PageElement,
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>          <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save changes</Button>
+          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
