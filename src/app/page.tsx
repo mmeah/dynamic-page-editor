@@ -70,7 +70,7 @@ export default function HomePage() {
           elements: data.elements.map((el: PageElement, index: number) => ({
             ...el,
             zIndex: el.zIndex ?? index + 1,
-            status: 'idle',
+            status: el.status || 'idle',
           })),
         };
         setConfig(migratedConfig);
@@ -208,7 +208,7 @@ export default function HomePage() {
   };
 
   const handleElementClick = async (element: PageElement) => {
-    if (isEditMode || !element.url) return;
+    if (isEditMode || !element.url || element.status !== 'idle') return;
 
     const updateStatus = (id: string, status: ElementStatus) => {
       updateElements(config.elements.map(el => (el.id === id ? { ...el, status } : el)), true);
@@ -533,12 +533,26 @@ export default function HomePage() {
 
   const renderButtonContent = (element: PageElement) => {
     const status = element.status || 'idle';
+    const hasIcon = !!element.icon;
+  
     if (status !== 'idle') {
+      const StatusIcon = {
+        loading: <Loader2 className="animate-spin" />,
+        success: <CheckCircle style={{ color: 'hsl(var(--success))' }} />,
+        error: <XCircle className="text-destructive" />,
+      }[status];
+  
+      if (hasIcon) {
+        return (
+          <>
+            {StatusIcon}
+            {element.text && <span>{element.text}</span>}
+          </>
+        );
+      }
       return (
         <>
-          {status === 'loading' && <Loader2 className="animate-spin" />}
-          {status === 'success' && <CheckCircle style={{ color: 'hsl(var(--success))' }} />}
-          {status === 'error' && <XCircle className="text-destructive" />}
+          {StatusIcon}
           {element.text && <span>{element.text}</span>}
         </>
       );
@@ -734,6 +748,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 "p-2 rounded-md transition-shadow select-none",
                 isEditMode && selectedElementIds.includes(element.id) && "shadow-lg border-2 border-dashed border-primary ring-2 ring-primary ring-offset-2",
                 element.type !== 'image' && (isEditMode ? 'cursor-move' : (element.url ? 'cursor-pointer' : 'default')),
+                 {'pointer-events-none': element.status !== 'idle'}
             )}
           >
             {element.type === 'button' ? (
@@ -744,7 +759,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 {renderButtonContent(element)}
               </Button>
             ) : element.type === 'text' ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="relative flex items-center justify-center h-full">
                   {element.status && element.status !== 'idle' ? (
                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 rounded-md">
                         {
@@ -790,7 +805,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                      )}
                 </div>
             ) : element.type === 'icon' ? ( // icon
-                <div className="flex items-center justify-center h-full">
+                <div className="relative flex items-center justify-center h-full">
                   {element.status && element.status !== 'idle' ? (
                      {
                       loading: <Loader2 className="animate-spin" style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />,
@@ -1070,5 +1085,7 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
+
+    
 
     
