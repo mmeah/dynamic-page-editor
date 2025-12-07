@@ -19,6 +19,8 @@ import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/
 import { LucideIcon, iconList } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Progress } from "@/components/ui/progress";
+
 
 export default function HomePage() {
   const [isMounted, setIsMounted] = React.useState(false);
@@ -31,6 +33,7 @@ export default function HomePage() {
   const [editingElement, setEditingElement] = React.useState<PageElement | null>(null);
   const [selectedElementIds, setSelectedElementIds] = React.useState<string[]>([]);
   const [showJsonExport, setShowJsonExport] = React.useState(false);
+  const [isPageLoading, setIsPageLoading] = React.useState(false);
   const [draggingState, setDraggingState] = React.useState<{
     isDragging: boolean;
     initialPositions: Map<string, { x: number; y: number }>;
@@ -70,7 +73,7 @@ export default function HomePage() {
           elements: data.elements.map((el: PageElement, index: number) => ({
             ...el,
             zIndex: el.zIndex ?? index + 1,
-            status: el.status || 'idle',
+            status: 'idle',
           })),
         };
         setConfig(migratedConfig);
@@ -207,38 +210,25 @@ export default function HomePage() {
   };
 
   const handleElementClick = async (element: PageElement) => {
-    if (isEditMode || !element.url || element.status === 'loading') return;
+    if (isEditMode || !element.url || isPageLoading) return;
   
-    // Set status to loading
-    updateElements(
-      config.elements.map(el => 
-        el.id === element.id ? { ...el, status: 'loading' } : el
-      ), 
-      true
-    );
+    setIsPageLoading(true);
   
     try {
       const response = await fetch(element.url);
       if (!response.ok) {
-        toast({
-          variant: "destructive",
-          description: <div className="flex items-center gap-2"><XCircle /><span>Error: {element.url}</span></div>,
-        });
+        throw new Error(`Request failed with status ${response.status}`);
       }
-    } catch (error) {
+      // No success notification as requested
+    } catch (error: any) {
        toast({
           variant: "destructive",
-          description: <div className="flex items-center gap-2"><XCircle /><span>Failed to fetch: {element.url}</span></div>,
+          title: "Request Failed",
+          description: <div className="flex items-center gap-2"><XCircle /><span>{element.url}</span></div>,
         });
+    } finally {
+      setIsPageLoading(false);
     }
-  
-    // Reset the current element's status back to idle
-    updateElements(
-      config.elements.map(el => 
-        el.id === element.id ? { ...el, status: 'idle' } : el
-      ), 
-      true
-    );
   };
 
     const handleDragStart = (id: string, clientX: number, clientY: number, shiftKey = false) => {
@@ -541,19 +531,6 @@ export default function HomePage() {
     };
   }, [handleKeyDown]);
   
-
-  const renderButtonContent = (element: PageElement) => {
-    const status = element.status || 'idle';
-  
-    return (
-      <div className="relative w-full h-full flex items-center justify-center gap-2">
-        {status === 'loading' && <Loader2 className="animate-spin" />}
-        {element.icon && <LucideIcon name={element.icon} />}
-        {element.text && <span>{element.text}</span>}
-      </div>
-    );
-  };
-  
   const getElementRect = (elementId: string) => {
     if (!mainContainerRef.current) return null;
     const el = config.elements.find(e => e.id === elementId);
@@ -671,7 +648,25 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
   }
 
   return (
-    <div className="h-screen bg-background" onClick={closeContextMenu}>
+    <div className="h-screen bg-background relative" onClick={closeContextMenu}>
+      {isPageLoading && (
+        <div className="absolute top-0 left-0 w-full h-1 z-50 overflow-hidden">
+          <div className="animate-indeterminate-progress absolute top-0 left-0 h-full w-full bg-primary transform-gpu"></div>
+            <style jsx>{`
+              @keyframes indeterminate-progress {
+                0% {
+                  transform: translateX(-100%);
+                }
+                100% {
+                  transform: translateX(100%);
+                }
+              }
+              .animate-indeterminate-progress {
+                animation: indeterminate-progress 1.5s infinite ease-in-out;
+              }
+          `}</style>
+        </div>
+      )}
       <div 
         ref={mainContainerRef}
         className="w-full h-full relative overflow-auto grid-bg" 
@@ -736,7 +731,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 "p-2 rounded-md transition-shadow select-none",
                 isEditMode && selectedElementIds.includes(element.id) && "shadow-lg border-2 border-dashed border-primary ring-2 ring-primary ring-offset-2",
                 element.type !== 'image' && (isEditMode ? 'cursor-move' : (element.url ? 'cursor-pointer' : 'default')),
-                 {'pointer-events-none': element.status === 'loading'}
+                 {'pointer-events-none': isPageLoading}
             )}
           >
             {element.type === 'button' ? (
@@ -744,15 +739,13 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 style={{ backgroundColor: element.color, fontSize: 'inherit', fontFamily: 'inherit' }}
                 className="w-full h-full text-primary-foreground"
               >
-                {renderButtonContent(element)}
+                <div className="relative w-full h-full flex items-center justify-center gap-2">
+                    {element.icon && <LucideIcon name={element.icon} />}
+                    {element.text && <span>{element.text}</span>}
+                </div>
               </Button>
             ) : element.type === 'text' ? (
                 <div className="relative flex items-center justify-center h-full">
-                  {element.status === 'loading' && (
-                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 rounded-md">
-                        <Loader2 className="animate-spin text-white" size={element.fontSize} />
-                    </div>
-                  )}
                   <p style={{ color: element.color }}>{element.text}</p>
                 </div>
             ) : element.type === 'image' && element.src ? (
@@ -766,11 +759,6 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                             <GripVertical className="h-4 w-4 text-primary-foreground" />
                         </div>
                     )}
-                    {element.status === 'loading' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 rounded-md">
-                            <Loader2 className="animate-spin text-white" size={(element.width || 100)/4} />
-                        </div>
-                    )}
                      <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="cover" className={cn("rounded-md", element.url && !isEditMode && "cursor-pointer")} />
                      {isEditMode && selectedElementIds.includes(element.id) && (
                         <div 
@@ -782,11 +770,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 </div>
             ) : element.type === 'icon' ? ( // icon
                 <div className="relative flex items-center justify-center h-full">
-                  {element.status === 'loading' ? (
-                     <Loader2 className="animate-spin" style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />
-                  ) : (
                     <LucideIcon name={element.icon || 'Smile'} style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />
-                  )}
                 </div>
             ) : null }
           </div>
@@ -1072,3 +1056,6 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     
 
 
+
+
+    
