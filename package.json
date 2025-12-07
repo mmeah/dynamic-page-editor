@@ -8,7 +8,7 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "postbuild": "cp -r public/* out/",
-    "deploy": "gh-pages -d out",
+    "deploy": "gh-pages -d out -u \"mmeah <1895121+mmeah@users.noreply.github.com>\"",
     "build:clean": "rm -rf .next && npm run build",
     "start": "next start",
     "lint": "next lint",
