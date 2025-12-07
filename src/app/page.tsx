@@ -219,11 +219,7 @@ export default function HomePage() {
   
     try {
       const response = await fetch(element.url);
-      if (response.ok) {
-        toast({
-          description: <div className="flex items-center gap-2"><CheckCircle className="text-green-500" /><span>Success: {element.url}</span></div>,
-        });
-      } else {
+      if (!response.ok) {
         toast({
           variant: "destructive",
           description: <div className="flex items-center gap-2"><XCircle /><span>Error: {element.url}</span></div>,
@@ -549,15 +545,12 @@ export default function HomePage() {
   const renderButtonContent = (element: PageElement) => {
     const status = element.status || 'idle';
   
-    if (status === 'loading') {
-        return <Loader2 className="animate-spin" />;
-    }
-  
     return (
-      <>
+      <div className="relative w-full h-full flex items-center justify-center gap-2">
+        {status === 'loading' && <Loader2 className="animate-spin" />}
         {element.icon && <LucideIcon name={element.icon} />}
         {element.text && <span>{element.text}</span>}
-      </>
+      </div>
     );
   };
   
@@ -1077,4 +1070,5 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     
 
     
+
 
