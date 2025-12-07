@@ -39,7 +39,6 @@ export default function HomePage() {
     initialPositions: Map<string, { x: number; y: number }>;
     startX: number;
     startY: number;
-    didMove: boolean;
   } | null>(null);
   const mainContainerRef = React.useRef<HTMLDivElement>(null);
   const longPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -219,7 +218,6 @@ export default function HomePage() {
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
       }
-      // No success notification as requested
     } catch (error: any) {
        toast({
           variant: "destructive",
@@ -258,8 +256,7 @@ export default function HomePage() {
     });
 
     setDraggingState({
-      isDragging: false, // Will be set to true on first move
-      didMove: false,
+      isDragging: true,
       initialPositions,
       startX: clientX,
       startY: clientY,
@@ -269,19 +266,6 @@ export default function HomePage() {
   const handleDragMove = (clientX: number, clientY: number) => {
     if (!draggingState || !mainContainerRef.current) return;
     
-    let currentDraggingState = { ...draggingState };
-    if (!currentDraggingState.isDragging) {
-        const dx = Math.abs(clientX - currentDraggingState.startX);
-        const dy = Math.abs(clientY - currentDraggingState.startY);
-        if (dx > 2 || dy > 2) { // Drag threshold
-            currentDraggingState.isDragging = true;
-        } else {
-            return; // Not a drag yet
-        }
-    }
-    currentDraggingState.didMove = true;
-
-
     const dx = clientX - draggingState.startX;
     const dy = clientY - draggingState.startY;
 
@@ -297,31 +281,20 @@ export default function HomePage() {
       }),
       true
     );
-     if (draggingState && !draggingState.isDragging) {
-        setDraggingState(currentDraggingState);
-    }
   };
 
-  const handleDragEnd = (elementId?: string) => {
+  const handleDragEnd = () => {
     if (draggingState) {
-      if (draggingState.isDragging) {
-        updateElements([...config.elements]);
-      } else if (!draggingState.didMove && elementId) {
-        const element = config.elements.find(el => el.id === elementId);
-        if (element) handleElementClick(element);
-      }
-      setDraggingState(null);
+        setDraggingState(null);
     }
-
     if (longPressTimeoutRef.current) {
-      clearTimeout(longPressTimeoutRef.current);
-      longPressTimeoutRef.current = null;
+        clearTimeout(longPressTimeoutRef.current);
+        longPressTimeoutRef.current = null;
     }
   };
   
   const handleResizeStart = (e: React.MouseEvent | React.TouchEvent, elementId: string) => {
     e.stopPropagation();
-    e.preventDefault();
     if (!isEditMode) return;
   
     const element = config.elements.find(el => el.id === elementId);
@@ -368,7 +341,7 @@ export default function HomePage() {
   }, [resizingState, config.elements, updateElements]);
 
   const handleGlobalMouseMove = React.useCallback((e: MouseEvent) => {
-    if (draggingState?.isDragging) handleDragMove(e.clientX, e.clientY);
+    if (draggingState) handleDragMove(e.clientX, e.clientY);
     if (resizingState?.isResizing) handleResizeMove(e.clientX, e.clientY);
   }, [draggingState, resizingState, handleDragMove, handleResizeMove]);
 
@@ -388,14 +361,20 @@ export default function HomePage() {
 
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
-    if (e.target instanceof HTMLElement && e.target.closest('[data-drag-handle]')) {
-        e.stopPropagation();
-    }
+    if (e.button !== 0) return; // Only drag with left mouse button
+    const target = e.target as HTMLElement;
+    
+    // Prevent drag from starting on a resize handle
+    if (target.closest('[data-resize-handle]')) return;
+
     handleDragStart(id, e.clientX, e.clientY, e.shiftKey);
   };
   
   const handleTouchStart = (e: React.TouchEvent, id: string) => {
     if (!isEditMode) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-resize-handle]')) return;
+
     const touch = e.touches[0];
     
     if (e.touches.length === 1) {
@@ -408,8 +387,13 @@ export default function HomePage() {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (longPressTimeoutRef.current) {
-        clearTimeout(longPressTimeoutRef.current);
-        longPressTimeoutRef.current = null;
+        const touch = e.touches[0];
+        const dx = Math.abs(touch.clientX - (draggingState?.startX ?? touch.clientX));
+        const dy = Math.abs(touch.clientY - (draggingState?.startY ?? touch.clientY));
+        if (dx > 5 || dy > 5) {
+          clearTimeout(longPressTimeoutRef.current);
+          longPressTimeoutRef.current = null;
+        }
     }
     if (draggingState) {
         e.preventDefault(); 
@@ -702,79 +686,79 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
             </div>
         )}
 
-        {config.elements.sort((a,b) => (a.zIndex || 0) - (b.zIndex || 0)).map(element => (
-          <div
-            key={element.id}
-            data-element-id={element.id}
-            onMouseDown={(e) => handleMouseDown(e, element.id)}
-            onMouseUp={() => handleDragEnd(element.id)}
-            onTouchStart={(e) => handleTouchStart(e, element.id)}
-            onClick={(e) => {
-              if (draggingState?.isDragging || draggingState?.didMove) return;
-              if (!isEditMode) {
-                handleElementClick(element);
-              }
-            }}
-            style={{ 
-                position: 'absolute', 
-                left: element.x, 
-                top: element.y,
-                zIndex: element.zIndex,
-                width: element.width,
-                height: element.height,
-                fontFamily: element.fontFamily,
-                fontSize: `${element.fontSize}px`,
-                fontWeight: element.id === 'page-title' ? 'bold' : 'normal',
-                cursor: isEditMode ? 'move' : (element.url && !isEditMode ? 'pointer' : 'default'),
-            }}
-            className={cn(
-                "p-2 rounded-md transition-shadow select-none",
-                isEditMode && selectedElementIds.includes(element.id) && "shadow-lg border-2 border-dashed border-primary ring-2 ring-primary ring-offset-2",
-                element.type !== 'image' && (isEditMode ? 'cursor-move' : (element.url ? 'cursor-pointer' : 'default')),
-                 {'pointer-events-none': isPageLoading}
-            )}
-          >
-            {element.type === 'button' ? (
-              <Button 
-                style={{ backgroundColor: element.color, fontSize: 'inherit', fontFamily: 'inherit' }}
-                className="w-full h-full text-primary-foreground"
-              >
-                <div className="relative w-full h-full flex items-center justify-center gap-2">
+        {config.elements.sort((a,b) => (a.zIndex || 0) - (b.zIndex || 0)).map(element => {
+          const isSelected = isEditMode && selectedElementIds.includes(element.id);
+          const canDrag = isEditMode && (element.type !== 'image' || isSelected);
+
+          return (
+            <div
+                key={element.id}
+                data-element-id={element.id}
+                onMouseDown={(e) => handleMouseDown(e, element.id)}
+                onTouchStart={(e) => handleTouchStart(e, element.id)}
+                onClick={(e) => {
+                    // Prevent click action during a drag
+                    if (draggingState) return; 
+                    if (!isEditMode) handleElementClick(element);
+                }}
+                style={{ 
+                    position: 'absolute', 
+                    left: element.x, 
+                    top: element.y,
+                    zIndex: element.zIndex,
+                    width: element.width,
+                    height: element.height,
+                    fontFamily: element.fontFamily,
+                    fontSize: `${element.fontSize}px`,
+                    fontWeight: element.id === 'page-title' ? 'bold' : 'normal',
+                }}
+                className={cn(
+                    "p-2 rounded-md transition-shadow select-none",
+                    isSelected && "shadow-lg border-2 border-dashed border-primary ring-2 ring-primary ring-offset-2",
+                    isEditMode && canDrag ? 'cursor-move' : (element.url && !isEditMode ? 'cursor-pointer' : 'default'),
+                    {'pointer-events-none': isPageLoading && !isEditMode}
+                )}
+            >
+              {element.type === 'button' ? (
+                <Button 
+                  style={{ backgroundColor: element.color, fontSize: 'inherit', fontFamily: 'inherit' }}
+                  className="w-full h-full text-primary-foreground pointer-events-none" // Disable pointer events on button itself
+                >
                     {element.icon && <LucideIcon name={element.icon} />}
                     {element.text && <span>{element.text}</span>}
-                </div>
-              </Button>
-            ) : element.type === 'text' ? (
-                <div className="relative flex items-center justify-center h-full">
-                  <p style={{ color: element.color }}>{element.text}</p>
-                </div>
-            ) : element.type === 'image' && element.src ? (
-                <div className="relative w-full h-full group" style={{cursor: 'default'}}>
-                    {isEditMode && selectedElementIds.includes(element.id) && (
-                        <div 
-                            data-drag-handle
-                            onMouseDown={(e) => handleMouseDown(e, element.id)}
-                            className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full p-1 bg-primary rounded-t-md cursor-move opacity-50 hover:opacity-100 transition-opacity"
-                        >
-                            <GripVertical className="h-4 w-4 text-primary-foreground" />
-                        </div>
-                    )}
-                     <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="cover" className={cn("rounded-md", element.url && !isEditMode && "cursor-pointer")} />
-                     {isEditMode && selectedElementIds.includes(element.id) && (
-                        <div 
-                            onMouseDown={(e) => handleResizeStart(e, element.id)}
-                            onTouchStart={(e) => handleResizeStart(e, element.id)}
-                            className="absolute -right-1 -bottom-1 w-4 h-4 bg-primary rounded-full border-2 border-background cursor-se-resize"
-                        />
-                     )}
-                </div>
-            ) : element.type === 'icon' ? ( // icon
-                <div className="relative flex items-center justify-center h-full">
-                    <LucideIcon name={element.icon || 'Smile'} style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />
-                </div>
-            ) : null }
-          </div>
-        ))}
+                </Button>
+              ) : element.type === 'text' ? (
+                  <div className="relative flex items-center justify-center h-full">
+                    <p style={{ color: element.color }}>{element.text}</p>
+                  </div>
+              ) : element.type === 'image' && element.src ? (
+                  <div className="relative w-full h-full group" style={{cursor: canDrag ? 'move' : 'default'}}>
+                      {isSelected && (
+                          <div 
+                              data-drag-handle
+                              className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full p-1 bg-primary rounded-t-md cursor-move opacity-50 hover:opacity-100 transition-opacity"
+                          >
+                              <GripVertical className="h-4 w-4 text-primary-foreground" />
+                          </div>
+                      )}
+                      <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="cover" className={cn("rounded-md pointer-events-none", element.url && !isEditMode && "cursor-pointer")} />
+                      {isSelected && (
+                          <div 
+                              data-resize-handle
+                              onMouseDown={(e) => handleResizeStart(e, element.id)}
+                              onTouchStart={(e) => handleResizeStart(e, element.id)}
+                              className="absolute -right-1 -bottom-1 w-4 h-4 bg-primary rounded-full border-2 border-background cursor-se-resize"
+                          />
+                      )}
+                  </div>
+              ) : element.type === 'icon' ? ( // icon
+                  <div className="relative flex items-center justify-center h-full">
+                      <LucideIcon name={element.icon || 'Smile'} style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />
+                  </div>
+              ) : null }
+            </div>
+          )
+        })}
       </div>
 
       {contextMenu.visible && (
@@ -1057,5 +1041,7 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
 
 
 
+
+    
 
     
