@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React from 'react';
@@ -58,13 +57,14 @@ export default function HomePage() {
 
   React.useEffect(() => {
     setIsMounted(true);
-    const fetchConfig = async () => {
-      try {
-        const res = await fetch('configuration.json');
+    fetch('configuration.json')
+      .then(res => {
         if (!res.ok) {
           throw new Error(`Failed to fetch configuration: ${res.statusText}`);
         }
-        const data = await res.json();
+        return res.json();
+      })
+      .then(data => {
         const migratedConfig = {
           ...data,
           elements: data.elements.map((el: PageElement, index: number) => ({
@@ -74,16 +74,15 @@ export default function HomePage() {
           })),
         };
         setConfig(migratedConfig);
-      } catch (error) {
+      })
+      .catch(error => {
         console.error("Failed to load configuration.json", error);
         toast({
           variant: "destructive",
           title: "Failed to load initial configuration",
           description: "Please make sure configuration.json exists in the public folder.",
         });
-      }
-    };
-    fetchConfig();
+      });
   }, [toast]);
 
   React.useEffect(() => {
@@ -209,25 +208,40 @@ export default function HomePage() {
 
   const handleElementClick = async (element: PageElement) => {
     if (isEditMode || !element.url || element.status !== 'idle') return;
-
-    const updateStatus = (id: string, status: ElementStatus) => {
-      updateElements(config.elements.map(el => (el.id === id ? { ...el, status } : el)), true);
+  
+    const updateStatus = (id: string, status: ElementStatus, resetOthers: boolean = false) => {
+      updateElements(
+        config.elements.map(el => {
+          if (el.id === id) return { ...el, status };
+          if (resetOthers) return { ...el, status: 'idle' };
+          return el;
+        }),
+        true
+      );
     };
-
+  
     updateStatus(element.id, 'loading');
-
+  
     try {
       const response = await fetch(element.url);
       if (response.ok) {
         updateStatus(element.id, 'success');
       } else {
-        updateStatus(element.id, 'error');
+        // On error, reset all others to idle immediately
+        updateStatus(element.id, 'error', true);
       }
     } catch (error) {
-      updateStatus(element.id, 'error');
+      // On error, reset all others to idle immediately
+      updateStatus(element.id, 'error', true);
     }
-
-    setTimeout(() => updateStatus(element.id, 'idle'), 2000);
+  
+    // Reset the current element's status after a delay
+    setTimeout(() => {
+      updateElements(
+        config.elements.map(el => (el.id === element.id ? { ...el, status: 'idle' } : el)),
+        true
+      );
+    }, 2000);
   };
 
     const handleDragStart = (id: string, clientX: number, clientY: number, shiftKey = false) => {
@@ -1095,11 +1109,6 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
-
     
-
-    
-
-
 
     
