@@ -7,7 +7,7 @@
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
-    "postbuild": "cp -r public/* out/ && mkdir -p out/_next && cp -r .next/static out/_next/static",
+    "postbuild": "cp -r .next/static out/_next/static && cp -r public/* out/",
     "deploy": "gh-pages -d out -u \"mmeah <1895121+mmeah@users.noreply.github.com>\"",
     "build:clean": "rm -rf .next && rm -rf out && npm run build",
     "start": "next start",
