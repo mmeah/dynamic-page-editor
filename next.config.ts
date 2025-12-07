@@ -1,9 +1,11 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'export',
   basePath: '/dynamic-page-editor',
+  assetPrefix: '/dynamic-page-editor/',
   typescript: {
     ignoreBuildErrors: true,
   },
