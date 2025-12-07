@@ -517,7 +517,7 @@ export default function HomePage() {
             selectedElementIds.includes(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
         )
     );
-  }, [isEditMode, selectedElementIds, config.elements, editingElement, handleCopy, handlePaste, updateElements]);
+  }, [isEditMode, selectedElementIds, config.elements, editingElement, handleCopy, handlePaste, updateElements, deleteElement]);
 
 
   React.useEffect(() => {
@@ -835,7 +835,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
           <p className="text-sm text-muted-foreground">Copy this JSON and save it to `public/configuration.json` to persist your changes.</p>
           <div className="relative">
             <ScrollArea className="h-[300px] w-full">
-                <pre className="bg-muted p-4 rounded-md text-sm">
+                <pre className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap break-all">
                     <code>{JSON.stringify(config, null, 2)}</code>
                 </pre>
             </ScrollArea>
