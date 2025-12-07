@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react';
@@ -69,6 +70,7 @@ export default function HomePage() {
           elements: data.elements.map((el: PageElement, index: number) => ({
             ...el,
             zIndex: el.zIndex ?? index + 1,
+            status: 'idle',
           })),
         };
         setConfig(migratedConfig);
@@ -365,7 +367,7 @@ export default function HomePage() {
   }, [resizingState, config.elements, updateElements]);
 
   const handleGlobalMouseMove = React.useCallback((e: MouseEvent) => {
-    if (draggingState) handleDragMove(e.clientX, e.clientY);
+    if (draggingState?.isDragging) handleDragMove(e.clientX, e.clientY);
     if (resizingState?.isResizing) handleResizeMove(e.clientX, e.clientY);
   }, [draggingState, resizingState, handleDragMove, handleResizeMove]);
 
@@ -529,24 +531,27 @@ export default function HomePage() {
   }, [handleKeyDown]);
   
 
-  const renderElementContent = (element: PageElement) => {
-    const statusIcon = {
-      loading: <Loader2 className="animate-spin" />,
-      success: <CheckCircle style={{ color: 'hsl(var(--success))' }} />,
-      error: <XCircle className="text-destructive" />,
-      idle: null
-    };
-
-    const content = (
+  const renderButtonContent = (element: PageElement) => {
+    const status = element.status || 'idle';
+    if (status !== 'idle') {
+      return (
+        <>
+          {status === 'loading' && <Loader2 className="animate-spin" />}
+          {status === 'success' && <CheckCircle style={{ color: 'hsl(var(--success))' }} />}
+          {status === 'error' && <XCircle className="text-destructive" />}
+          {element.text && <span>{element.text}</span>}
+        </>
+      );
+    }
+  
+    return (
       <>
-        {element.icon && <LucideIcon name={element.icon} className="inline-block mr-2" size={element.fontSize} />}
-        {element.type !== 'icon' && <span>{element.text}</span>}
+        {element.icon && <LucideIcon name={element.icon} />}
+        {element.text && <span>{element.text}</span>}
       </>
     );
-    
-    return statusIcon[element.status || 'idle'] || content;
   };
-
+  
   const getElementRect = (elementId: string) => {
     if (!mainContainerRef.current) return null;
     const el = config.elements.find(e => e.id === elementId);
@@ -704,11 +709,11 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
           <div
             key={element.id}
             data-element-id={element.id}
-            onMouseDown={(e) => { if (element.type !== 'image') handleMouseDown(e, element.id)}}
+            onMouseDown={(e) => handleMouseDown(e, element.id)}
             onMouseUp={() => handleDragEnd(element.id)}
             onTouchStart={(e) => handleTouchStart(e, element.id)}
             onClick={(e) => {
-              if (draggingState?.didMove) return;
+              if (draggingState?.isDragging || draggingState?.didMove) return;
               if (!isEditMode) {
                 handleElementClick(element);
               }
@@ -723,12 +728,12 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 fontFamily: element.fontFamily,
                 fontSize: `${element.fontSize}px`,
                 fontWeight: element.id === 'page-title' ? 'bold' : 'normal',
-                cursor: isEditMode && element.type !== 'image' ? 'move' : (element.url && !isEditMode ? 'pointer' : 'default'),
+                cursor: isEditMode ? 'move' : (element.url && !isEditMode ? 'pointer' : 'default'),
             }}
             className={cn(
                 "p-2 rounded-md transition-shadow select-none",
                 isEditMode && selectedElementIds.includes(element.id) && "shadow-lg border-2 border-dashed border-primary ring-2 ring-primary ring-offset-2",
-                element.type === 'button' && "min-w-[100px]",
+                element.type !== 'image' && (isEditMode ? 'cursor-move' : (element.url ? 'cursor-pointer' : 'default')),
             )}
           >
             {element.type === 'button' ? (
@@ -736,22 +741,25 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 style={{ backgroundColor: element.color, fontSize: 'inherit', fontFamily: 'inherit' }}
                 className="w-full h-full text-primary-foreground"
               >
-                {renderElementContent(element)}
+                {renderButtonContent(element)}
               </Button>
             ) : element.type === 'text' ? (
                 <div className="flex items-center justify-center h-full">
                   {element.status && element.status !== 'idle' ? (
-                    {
-                      loading: <Loader2 className="animate-spin" size={element.fontSize} />,
-                      success: <CheckCircle style={{ color: 'hsl(var(--success))' }} size={element.fontSize} />,
-                      error: <XCircle className="text-destructive" size={element.fontSize} />
-                    }[element.status]
-                  ) : (
-                    <p style={{ color: element.color }}>{element.text}</p>
-                  )}
+                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 rounded-md">
+                        {
+                            {
+                                loading: <Loader2 className="animate-spin text-white" size={element.fontSize} />,
+                                success: <CheckCircle className="text-white" size={element.fontSize} />,
+                                error: <XCircle className="text-destructive" size={element.fontSize} />
+                            }[element.status]
+                        }
+                    </div>
+                  ) : null}
+                  <p style={{ color: element.color }}>{element.text}</p>
                 </div>
             ) : element.type === 'image' && element.src ? (
-                <div className="relative w-full h-full group" onMouseDown={(e) => handleMouseDown(e, element.id)} onMouseUp={() => handleDragEnd(element.id)}>
+                <div className="relative w-full h-full group" style={{cursor: 'default'}}>
                     {isEditMode && selectedElementIds.includes(element.id) && (
                         <div 
                             data-drag-handle
@@ -772,7 +780,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                             }
                         </div>
                     ) : null}
-                     <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="cover" className="rounded-md" />
+                     <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="cover" className={cn("rounded-md", element.url && !isEditMode && "cursor-pointer")} />
                      {isEditMode && selectedElementIds.includes(element.id) && (
                         <div 
                             onMouseDown={(e) => handleResizeStart(e, element.id)}
@@ -842,7 +850,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
           <p className="text-sm text-muted-foreground">Copy this JSON and save it to `public/configuration.json` to persist your changes.</p>
           <div className="relative">
             <ScrollArea className="h-[300px] w-full">
-                <pre className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap break-all overflow-x-auto">
+                <pre className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap break-words overflow-x-auto">
                     <code>{JSON.stringify(config, null, 2)}</code>
                 </pre>
             </ScrollArea>
@@ -1062,3 +1070,5 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
+
+    
