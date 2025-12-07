@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -706,6 +707,12 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
             onMouseDown={(e) => { if (element.type !== 'image') handleMouseDown(e, element.id)}}
             onMouseUp={() => handleDragEnd(element.id)}
             onTouchStart={(e) => handleTouchStart(e, element.id)}
+            onClick={(e) => {
+              if (draggingState?.didMove) return;
+              if (!isEditMode) {
+                handleElementClick(element);
+              }
+            }}
             style={{ 
                 position: 'absolute', 
                 left: element.x, 
@@ -732,7 +739,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 {renderElementContent(element)}
               </Button>
             ) : element.type === 'text' ? (
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center h-full">
                   {element.status && element.status !== 'idle' ? (
                     {
                       loading: <Loader2 className="animate-spin" size={element.fontSize} />,
@@ -755,7 +762,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                         </div>
                     )}
                     {element.status && element.status !== 'idle' ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 rounded-md">
                             {
                                 {
                                     loading: <Loader2 className="animate-spin text-white" size={(element.width || 100)/4} />,
@@ -775,7 +782,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                      )}
                 </div>
             ) : element.type === 'icon' ? ( // icon
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center h-full">
                   {element.status && element.status !== 'idle' ? (
                      {
                       loading: <Loader2 className="animate-spin" style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />,
@@ -835,7 +842,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
           <p className="text-sm text-muted-foreground">Copy this JSON and save it to `public/configuration.json` to persist your changes.</p>
           <div className="relative">
             <ScrollArea className="h-[300px] w-full">
-                <pre className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap break-all">
+                <pre className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap break-all overflow-x-auto">
                     <code>{JSON.stringify(config, null, 2)}</code>
                 </pre>
             </ScrollArea>

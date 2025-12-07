@@ -7,12 +7,12 @@
     {
       "id": "1765064648893",
       "type": "image",
-      "x": 103,
-      "y": 152,
+      "x": 110,
+      "y": 157,
       "zIndex": 1,
       "src": "https://png.pngtree.com/png-vector/20190223/ourmid/pngtree-vector-picture-icon-png-image_695350.jpg",
-      "width": 181,
-      "height": 181,
+      "width": 169,
+      "height": 169,
       "aspectRatio": 1,
       "color": "#87CEEB",
       "fontSize": 16,
@@ -40,13 +40,14 @@
       "fontSize": 23,
       "fontFamily": "'PT Sans', sans-serif",
       "status": "idle",
-      "zIndex": 3
+      "zIndex": 3,
+      "url": "http://test.com?test=true"
     },
     {
       "id": "1765065800497",
       "type": "button",
-      "x": 303,
-      "y": 247,
+      "x": 290,
+      "y": 271,
       "zIndex": 4,
       "text": "TV OFF",
       "icon": "Tv",
@@ -54,6 +55,34 @@
       "color": "#87CEEB",
       "fontSize": 16,
       "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle"
+    },
+    {
+      "id": "17650662222360.12479789285956133",
+      "type": "button",
+      "x": 290,
+      "y": 157,
+      "zIndex": 5,
+      "text": "TV ON",
+      "icon": "Tv",
+      "url": "http://test.org/cgi-bin/test.py?123",
+      "color": "#87CEEB",
+      "fontSize": 16,
+      "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle"
+    },
+    {
+      "id": "17650662450390.3838796613451906",
+      "type": "button",
+      "x": 88,
+      "y": 325,
+      "zIndex": 6,
+      "text": "TV Change Source",
+      "icon": "TvMinimalPlay",
+      "url": "http://test.org/cgi-bin/test.py?123",
+      "color": "#87CEEB",
+      "fontSize": 16,
+      "fontFamily": "Georgia, serif",
       "status": "idle"
     }
   ]
