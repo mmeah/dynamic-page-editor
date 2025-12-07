@@ -48,9 +48,11 @@ export default function HomePage() {
     initialWidth: number;
     initialHeight: number;
   } | null>(null);
+  const clipboardRef = React.useRef<PageElement[]>([]);
 
   const NUDGE_AMOUNT = 1;
   const LONG_PRESS_DURATION = 300;
+  const PASTE_OFFSET = 10;
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -352,14 +354,14 @@ export default function HomePage() {
       ),
       true
     );
-  }, [resizingState, config.elements]);
+  }, [resizingState, config.elements, updateElements]);
   
   const handleResizeEnd = React.useCallback(() => {
     if (resizingState?.isResizing) {
       updateElements([...config.elements]);
       setResizingState(null);
     }
-  }, [resizingState, config.elements]);
+  }, [resizingState, config.elements, updateElements]);
 
   const handleGlobalMouseMove = React.useCallback((e: MouseEvent) => {
     if (draggingState) handleDragMove(e.clientX, e.clientY);
@@ -369,7 +371,7 @@ export default function HomePage() {
   const handleGlobalMouseUp = React.useCallback(() => {
     handleDragEnd();
     handleResizeEnd();
-  }, [handleResizeEnd]);
+  }, [handleDragEnd, handleResizeEnd]);
 
   React.useEffect(() => {
     window.addEventListener('mousemove', handleGlobalMouseMove);
@@ -433,8 +435,55 @@ export default function HomePage() {
       closeContextMenu();
   }
 
+  const handleCopy = React.useCallback(() => {
+    if (selectedElementIds.length > 0) {
+      clipboardRef.current = config.elements.filter(el => selectedElementIds.includes(el.id));
+      toast({ title: `Copied ${selectedElementIds.length} element(s)` });
+    }
+  }, [selectedElementIds, config.elements, toast]);
+
+  const handlePaste = React.useCallback(() => {
+    if (clipboardRef.current.length > 0) {
+      const maxZIndex = Math.max(0, ...config.elements.map(el => el.zIndex || 0));
+      let currentZ = maxZIndex;
+
+      const newElements = clipboardRef.current.map(el => {
+        currentZ++;
+        return {
+          ...el,
+          id: Date.now().toString() + Math.random(),
+          x: el.x + PASTE_OFFSET,
+          y: el.y + PASTE_OFFSET,
+          zIndex: currentZ,
+        };
+      });
+
+      const newElementsIds = newElements.map(el => el.id);
+      updateElements([...config.elements, ...newElements]);
+      setSelectedElementIds(newElementsIds);
+      toast({ title: `Pasted ${newElements.length} element(s)` });
+    }
+  }, [config.elements, updateElements, toast]);
+
+
   const handleKeyDown = React.useCallback((e: KeyboardEvent) => {
-    if (!isEditMode || selectedElementIds.length === 0 || editingElement) return;
+    if (!isEditMode || editingElement) return;
+
+    // Handle copy-paste
+    if ((e.metaKey || e.ctrlKey)) {
+        if (e.key === 'c') {
+            e.preventDefault();
+            handleCopy();
+            return;
+        }
+        if (e.key === 'v') {
+            e.preventDefault();
+            handlePaste();
+            return;
+        }
+    }
+
+    if(selectedElementIds.length === 0) return;
 
     let dx = 0;
     let dy = 0;
@@ -468,7 +517,7 @@ export default function HomePage() {
             selectedElementIds.includes(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
         )
     );
-  }, [isEditMode, selectedElementIds, config.elements, editingElement]);
+  }, [isEditMode, selectedElementIds, config.elements, editingElement, handleCopy, handlePaste, updateElements]);
 
 
   React.useEffect(() => {
@@ -785,7 +834,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
           <DialogHeader><DialogTitle>Page Configuration</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Copy this JSON and save it to `public/configuration.json` to persist your changes.</p>
           <div className="relative">
-            <ScrollArea className="h-96">
+            <ScrollArea className="h-[300px] w-full">
                 <pre className="bg-muted p-4 rounded-md text-sm">
                     <code>{JSON.stringify(config, null, 2)}</code>
                 </pre>
@@ -1006,5 +1055,3 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     </Dialog>
   )
 }
-
-    

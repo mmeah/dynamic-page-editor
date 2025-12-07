@@ -7,12 +7,12 @@
     {
       "id": "1765064648893",
       "type": "image",
-      "x": 62,
-      "y": 165,
+      "x": 103,
+      "y": 152,
       "zIndex": 1,
       "src": "https://png.pngtree.com/png-vector/20190223/ourmid/pngtree-vector-picture-icon-png-image_695350.jpg",
-      "width": 376,
-      "height": 376,
+      "width": 181,
+      "height": 181,
       "aspectRatio": 1,
       "color": "#87CEEB",
       "fontSize": 16,
@@ -23,8 +23,8 @@
       "id": "page-title",
       "type": "text",
       "text": "My Dynamic Page",
-      "x": 110,
-      "y": 97.5,
+      "x": 96,
+      "y": 94.5,
       "fontSize": 36,
       "fontFamily": "'Poppins', sans-serif",
       "zIndex": 2
@@ -41,6 +41,20 @@
       "fontFamily": "'PT Sans', sans-serif",
       "status": "idle",
       "zIndex": 3
+    },
+    {
+      "id": "1765065800497",
+      "type": "button",
+      "x": 303,
+      "y": 247,
+      "zIndex": 4,
+      "text": "TV OFF",
+      "icon": "Tv",
+      "url": "http://test.org/cgi-bin/test.py",
+      "color": "#87CEEB",
+      "fontSize": 16,
+      "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle"
     }
   ]
 }
