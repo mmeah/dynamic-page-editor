@@ -60,7 +60,7 @@ export default function HomePage() {
     setIsMounted(true);
     const fetchConfig = async () => {
       try {
-        const res = await fetch('/configuration.json');
+        const res = await fetch('configuration.json');
         if (!res.ok) {
           throw new Error(`Failed to fetch configuration: ${res.statusText}`);
         }
@@ -1099,3 +1099,4 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     
 
     
+
