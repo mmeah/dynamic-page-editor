@@ -207,41 +207,42 @@ export default function HomePage() {
   };
 
   const handleElementClick = async (element: PageElement) => {
-    if (isEditMode || !element.url || element.status !== 'idle') return;
+    if (isEditMode || !element.url || element.status === 'loading') return;
   
-    const updateStatus = (id: string, status: ElementStatus, resetOthers: boolean = false) => {
-      updateElements(
-        config.elements.map(el => {
-          if (el.id === id) return { ...el, status };
-          if (resetOthers) return { ...el, status: 'idle' };
-          return el;
-        }),
-        true
-      );
-    };
-  
-    updateStatus(element.id, 'loading');
+    // Set status to loading
+    updateElements(
+      config.elements.map(el => 
+        el.id === element.id ? { ...el, status: 'loading' } : el
+      ), 
+      true
+    );
   
     try {
       const response = await fetch(element.url);
       if (response.ok) {
-        updateStatus(element.id, 'success');
+        toast({
+          description: <div className="flex items-center gap-2"><CheckCircle className="text-green-500" /><span>Success: {element.url}</span></div>,
+        });
       } else {
-        // On error, reset all others to idle immediately
-        updateStatus(element.id, 'error', true);
+        toast({
+          variant: "destructive",
+          description: <div className="flex items-center gap-2"><XCircle /><span>Error: {element.url}</span></div>,
+        });
       }
     } catch (error) {
-      // On error, reset all others to idle immediately
-      updateStatus(element.id, 'error', true);
+       toast({
+          variant: "destructive",
+          description: <div className="flex items-center gap-2"><XCircle /><span>Failed to fetch: {element.url}</span></div>,
+        });
     }
   
-    // Reset the current element's status after a delay
-    setTimeout(() => {
-      updateElements(
-        config.elements.map(el => (el.id === element.id ? { ...el, status: 'idle' } : el)),
-        true
-      );
-    }, 2000);
+    // Reset the current element's status back to idle
+    updateElements(
+      config.elements.map(el => 
+        el.id === element.id ? { ...el, status: 'idle' } : el
+      ), 
+      true
+    );
   };
 
     const handleDragStart = (id: string, clientX: number, clientY: number, shiftKey = false) => {
@@ -547,29 +548,9 @@ export default function HomePage() {
 
   const renderButtonContent = (element: PageElement) => {
     const status = element.status || 'idle';
-    const hasIcon = !!element.icon;
   
-    if (status !== 'idle') {
-      const StatusIcon = {
-        loading: <Loader2 className="animate-spin" />,
-        success: <CheckCircle style={{ color: 'hsl(var(--success))' }} />,
-        error: <XCircle className="text-destructive" />,
-      }[status];
-  
-      if (hasIcon) {
-        return (
-          <>
-            {StatusIcon}
-            {element.text && <span>{element.text}</span>}
-          </>
-        );
-      }
-      return (
-        <>
-          {StatusIcon}
-          {element.text && <span>{element.text}</span>}
-        </>
-      );
+    if (status === 'loading') {
+        return <Loader2 className="animate-spin" />;
     }
   
     return (
@@ -762,7 +743,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 "p-2 rounded-md transition-shadow select-none",
                 isEditMode && selectedElementIds.includes(element.id) && "shadow-lg border-2 border-dashed border-primary ring-2 ring-primary ring-offset-2",
                 element.type !== 'image' && (isEditMode ? 'cursor-move' : (element.url ? 'cursor-pointer' : 'default')),
-                 {'pointer-events-none': element.status !== 'idle'}
+                 {'pointer-events-none': element.status === 'loading'}
             )}
           >
             {element.type === 'button' ? (
@@ -774,17 +755,11 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
               </Button>
             ) : element.type === 'text' ? (
                 <div className="relative flex items-center justify-center h-full">
-                  {element.status && element.status !== 'idle' ? (
+                  {element.status === 'loading' && (
                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 rounded-md">
-                        {
-                            {
-                                loading: <Loader2 className="animate-spin text-white" size={element.fontSize} />,
-                                success: <CheckCircle className="text-white" size={element.fontSize} />,
-                                error: <XCircle className="text-destructive" size={element.fontSize} />
-                            }[element.status]
-                        }
+                        <Loader2 className="animate-spin text-white" size={element.fontSize} />
                     </div>
-                  ) : null}
+                  )}
                   <p style={{ color: element.color }}>{element.text}</p>
                 </div>
             ) : element.type === 'image' && element.src ? (
@@ -798,17 +773,11 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                             <GripVertical className="h-4 w-4 text-primary-foreground" />
                         </div>
                     )}
-                    {element.status && element.status !== 'idle' ? (
+                    {element.status === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 rounded-md">
-                            {
-                                {
-                                    loading: <Loader2 className="animate-spin text-white" size={(element.width || 100)/4} />,
-                                    success: <CheckCircle className="text-white" size={(element.width || 100)/4} />,
-                                    error: <XCircle className="text-destructive" size={(element.width || 100)/4} />
-                                }[element.status]
-                            }
+                            <Loader2 className="animate-spin text-white" size={(element.width || 100)/4} />
                         </div>
-                    ) : null}
+                    )}
                      <Image src={element.src} alt={element.text || 'user image'} layout="fill" objectFit="cover" className={cn("rounded-md", element.url && !isEditMode && "cursor-pointer")} />
                      {isEditMode && selectedElementIds.includes(element.id) && (
                         <div 
@@ -820,12 +789,8 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
                 </div>
             ) : element.type === 'icon' ? ( // icon
                 <div className="relative flex items-center justify-center h-full">
-                  {element.status && element.status !== 'idle' ? (
-                     {
-                      loading: <Loader2 className="animate-spin" style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />,
-                      success: <CheckCircle style={{ color: 'hsl(var(--success))' }} size={(element.fontSize || 16) * 1.5} />,
-                      error: <XCircle className="text-destructive" size={(element.fontSize || 16) * 1.5} />
-                    }[element.status]
+                  {element.status === 'loading' ? (
+                     <Loader2 className="animate-spin" style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />
                   ) : (
                     <LucideIcon name={element.icon || 'Smile'} style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />
                   )}
@@ -1112,3 +1077,4 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
     
 
     
+
