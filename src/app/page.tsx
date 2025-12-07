@@ -929,6 +929,11 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
   }
 
   const handleDimensionChange = (field: 'width' | 'height', value: string) => {
+    if (value === '') {
+      setFormData(prev => ({ ...prev, [field]: undefined, aspectRatio: prev.aspectRatio }));
+      return;
+    }
+
     const numValue = parseInt(value, 10);
     if (isNaN(numValue) || numValue <= 0) return;
 
@@ -953,7 +958,12 @@ function EditElementModal({ element, onSave, onCancel, config }: { element: Page
   const updateAspectRatio = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
     const aspectRatio = naturalWidth / naturalHeight;
-    setFormData(prev => ({...prev, aspectRatio, width: naturalWidth, height: naturalHeight }));
+    setFormData(prev => ({
+      ...prev,
+      aspectRatio,
+      width: prev.width === undefined ? naturalWidth : prev.width,
+      height: prev.height === undefined ? naturalHeight : prev.height,
+     }));
   };
   
   const fontOptions = [
