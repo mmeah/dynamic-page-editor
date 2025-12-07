@@ -9,7 +9,7 @@
     "build": "next build",
     "postbuild": "cp -r public/* out/",
     "deploy": "gh-pages -d out -u \"mmeah <1895121+mmeah@users.noreply.github.com>\"",
-    "build:clean": "rm -rf .next && npm run build",
+    "build:clean": "rm -rf .next && rm -rf out && npm run build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
