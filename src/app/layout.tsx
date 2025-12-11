@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import { VersionFooter } from "@/components/version-footer";
 
 export const metadata: Metadata = {
   title: 'Dynamic Page',
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         {children}
         <Toaster />
+        <VersionFooter />
       </body>
     </html>
   );
