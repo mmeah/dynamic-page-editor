@@ -1,0 +1,99 @@
+{
+  "editorPassword": "1234",
+  "defaultRestUrl": "http://test.org/cgi-bin/test.py",
+  "defaultImageUrl": "https://png.pngtree.com/png-vector/20190223/ourmid/pngtree-vector-picture-icon-png-image_695350.jpg",
+  "favicon": "",
+  "elements": [
+    {
+      "id": "page-title",
+      "type": "text",
+      "text": "TVs ON/OFF POC",
+      "x": 42,
+      "y": 4.5,
+      "fontSize": 36,
+      "fontFamily": "'Poppins', sans-serif",
+      "zIndex": 6,
+      "status": "idle"
+    },
+    {
+      "id": "1765215567711",
+      "type": "text",
+      "x": 348,
+      "y": 34,
+      "zIndex": 7,
+      "text": "v1.0",
+      "color": "#727779",
+      "fontSize": 9,
+      "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle"
+    },
+    {
+      "id": "17652220055540.19982017807424723",
+      "type": "image",
+      "x": 44,
+      "y": 141,
+      "zIndex": 8,
+      "src": "http://10.0.24.64/platform-image.jpg",
+      "width": 307,
+      "height": 172.6875,
+      "aspectRatio": 1.7777777777777777,
+      "color": "#87CEEB",
+      "fontSize": 16,
+      "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle"
+    },
+    {
+      "id": "17652220055540.8892391860966613",
+      "type": "button",
+      "x": 342,
+      "y": 264,
+      "zIndex": 9,
+      "text": "TV OFF",
+      "icon": "Tv",
+      "url": "http://security.masjidds.org/cgi-bin/test.py?cmds=10.0.24.64,RoomM111,SamsungOff",
+      "color": "#87CEEB",
+      "fontSize": 16,
+      "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle"
+    },
+    {
+      "id": "17652220055540.8152980805413096",
+      "type": "button",
+      "x": 346,
+      "y": 138,
+      "zIndex": 10,
+      "text": "TV ON",
+      "icon": "Tv",
+      "url": "http://security.masjidds.org/cgi-bin/test.py?cmds=10.0.24.64,RoomM111,SamsungOn,SamsungExit",
+      "color": "#87CEEB",
+      "fontSize": 16,
+      "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle"
+    },
+    {
+      "id": "17652220055540.5877655322648896",
+      "type": "button",
+      "x": 138,
+      "y": 324,
+      "zIndex": 11,
+      "text": "TV Change Source",
+      "icon": "TvMinimalPlay",
+      "url": "http://security.masjidds.org/cgi-bin/test.py?cmds=10.0.24.64,RoomM111,SamsungSource",
+      "color": "#87CEEB",
+      "fontSize": 16,
+      "fontFamily": "Georgia, serif",
+      "status": "idle"
+    },
+    {
+      "id": "17652220055540.0989972798114187",
+      "type": "text",
+      "text": "Conference TV",
+      "x": 46,
+      "y": 83.5,
+      "fontSize": 36,
+      "fontFamily": "'Poppins', sans-serif",
+      "zIndex": 12,
+      "status": "idle"
+    }
+  ]
+}
