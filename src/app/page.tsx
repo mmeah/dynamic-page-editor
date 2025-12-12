@@ -65,16 +65,15 @@ export default function HomePage() {
     const configParam = params.get('config');
     const configFile = configParam ? (configParam.endsWith('.json') ? configParam : `${configParam}.json`) : 'configuration.json';
 
-    fetch(configFile)
-      .then(async res => {
-        if (!res.ok) {
-          const localConfig = await loadLocalConfig(configFile);
-          if (localConfig) return localConfig;
-          throw new Error(`Failed to fetch configuration: ${res.statusText}`);
-        }
-        return res.json();
-      })
-      .then(data => {
+    const loadConfig = async (file: string) => {
+      const res = await fetch(file);
+      if (res.ok) return res.json();
+      const localConfig = await loadLocalConfig(file);
+      if (localConfig) return localConfig;
+      throw new Error(`Failed to load ${file}`);
+    };
+
+    const processConfig = (data: any) => {
         const migratedConfig = {
           ...data,
           elements: data.elements.map((el: PageElement, index: number) => ({
@@ -84,9 +83,21 @@ export default function HomePage() {
           })),
         };
         setConfig(migratedConfig);
-      })
-      .catch(error => {
+    };
+
+    loadConfig(configFile)
+      .then(processConfig)
+      .catch(async error => {
         console.error(`Failed to load ${configFile}`, error);
+        if (configParam) {
+          try {
+            const errorData = await loadConfig('error.json');
+            processConfig(errorData);
+            return;
+          } catch (e) {
+            console.error("Failed to load error.json", e);
+          }
+        }
         toast({
           variant: "destructive",
           title: "Failed to load initial configuration",

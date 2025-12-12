@@ -1,0 +1,34 @@
+{
+  "editorPassword": "X",
+  "defaultRestUrl": "",
+  "defaultImageUrl": "",
+  "favicon": "",
+  "elements": [
+    {
+      "id": "page-title",
+      "type": "text",
+      "text": "Error loading page...",
+      "x": 96,
+      "y": 96.5,
+      "fontSize": 36,
+      "fontFamily": "'Poppins', sans-serif",
+      "zIndex": 2,
+      "status": "idle",
+      "color": "#f20202"
+    },
+    {
+      "id": "1765037712481",
+      "type": "icon",
+      "x": 45,
+      "y": 107,
+      "text": "New Button",
+      "icon": "CircleAlert",
+      "color": "#e90729",
+      "fontSize": 23,
+      "fontFamily": "'PT Sans', sans-serif",
+      "status": "idle",
+      "zIndex": 3,
+      "url": ""
+    }
+  ]
+}
