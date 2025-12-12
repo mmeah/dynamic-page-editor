@@ -20,6 +20,7 @@ import { LucideIcon, iconList } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Progress } from "@/components/ui/progress";
+import { loadLocalConfig } from './actions';
 
 
 export default function HomePage() {
@@ -59,9 +60,16 @@ export default function HomePage() {
 
   React.useEffect(() => {
     setIsMounted(true);
-    fetch('configuration.json')
-      .then(res => {
+
+    const params = new URLSearchParams(window.location.search);
+    const configParam = params.get('config');
+    const configFile = configParam ? (configParam.endsWith('.json') ? configParam : `${configParam}.json`) : 'configuration.json';
+
+    fetch(configFile)
+      .then(async res => {
         if (!res.ok) {
+          const localConfig = await loadLocalConfig(configFile);
+          if (localConfig) return localConfig;
           throw new Error(`Failed to fetch configuration: ${res.statusText}`);
         }
         return res.json();
@@ -78,11 +86,11 @@ export default function HomePage() {
         setConfig(migratedConfig);
       })
       .catch(error => {
-        console.error("Failed to load configuration.json", error);
+        console.error(`Failed to load ${configFile}`, error);
         toast({
           variant: "destructive",
           title: "Failed to load initial configuration",
-          description: "Please make sure configuration.json exists in the public folder.",
+          description: `Please make sure ${configFile} exists in the public folder.`,
         });
       });
   }, [toast]);
