@@ -13,7 +13,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "update:workflow:gh-pages": "git fetch origin gh-pages && git checkout gh-pages && mkdir -p .github/workflows && cp .github/workflows/gh-pages.yml .github/workflows/gh-pages.yml && git add .github/workflows/gh-pages.yml && (git diff --cached --quiet .github/workflows/gh-pages.yml || git commit -m 'chore: update gh-pages workflow') && git push origin gh-pages && git checkout -"
+    "update:workflow:gh-pages": "git stash push -u -k -m 'temp-stash-for-gh-pages' && git fetch origin gh-pages && git checkout gh-pages && git checkout origin/main -- .github/workflows/gh-pages.yml && git add .github/workflows/gh-pages.yml && (git diff --cached --quiet .github/workflows/gh-pages.yml || git commit -m 'chore: update gh-pages workflow') && git push origin gh-pages && git checkout - && git stash pop || true"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
