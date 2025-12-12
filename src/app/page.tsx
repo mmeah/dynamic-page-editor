@@ -20,7 +20,6 @@ import { LucideIcon, iconList } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Progress } from "@/components/ui/progress";
-import { loadLocalConfig } from './actions';
 
 
 export default function HomePage() {
@@ -68,8 +67,6 @@ export default function HomePage() {
     const loadConfig = async (file: string) => {
       const res = await fetch(file);
       if (res.ok) return res.json();
-      const localConfig = await loadLocalConfig(file);
-      if (localConfig) return localConfig;
       throw new Error(`Failed to load ${file}`);
     };
 

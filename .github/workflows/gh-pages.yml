@@ -1,0 +1,29 @@
+# This workflow builds and deploys the Next.js app to GitHub Pages when pushing to the gh-branches branch
+name: Build and Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - gh-branches
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and Export Next.js
+        run: npm run build && npm run deploy
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ github.event.repository.name }}
+
+      # Add any additional deployment steps here if needed
