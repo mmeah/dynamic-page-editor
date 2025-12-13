@@ -1,29 +1,58 @@
-# This workflow builds and deploys the Next.js app to GitHub Pages when pushing to the gh-branches branch
-name: Build and Deploy to GitHub Pages
+# Workflow for deploying static content to GitHub Pages on tag push
+name: Deploy static content to Pages on Tag
 
 on:
+  # Runs on pushes of tags that look like versions (e.g. v1.0, v2.3.4)
   push:
-    branches:
-      - gh-pages
+    tags:
+      - 'v*'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  # Build job
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-
+          node-version: '20'
+          cache: 'npm'
       - name: Install dependencies
         run: npm install
-
-      - name: Build and Export Next.js
-        run: npm run build && npm run deploy
+      - name: Build
+        run: npm run build
         env:
-          NEXT_PUBLIC_BASE_PATH: ${{ github.event.repository.name }}
+          # Prepending repository name for correct asset paths
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './out'
 
-      # Add any additional deployment steps here if needed
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
