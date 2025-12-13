@@ -19,6 +19,7 @@ import type { PageElement, ContextMenuData, ElementStatus, PageConfig } from '@/
 import { LucideIcon, iconList } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { JsonExportDialog } from '@/components/json-export';
 import { Progress } from "@/components/ui/progress";
 
 
@@ -815,30 +816,7 @@ const reorderElement = (direction: 'front' | 'back' | 'forward' | 'backward') =>
       
       {editingElement && <EditElementModal element={editingElement} onSave={handleUpdateElement} onCancel={() => setEditingElement(null)} config={config}/>}
 
-      <Dialog open={showJsonExport} onOpenChange={setShowJsonExport}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Page Configuration</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Copy this JSON and save it to `public/configuration.json` to persist your changes.</p>
-          <div className="relative">
-            <ScrollArea className="h-[300px] w-full">
-                <pre className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap break-words overflow-x-auto">
-                    <code>{JSON.stringify(config, null, 2)}</code>
-                </pre>
-            </ScrollArea>
-            <Button size="sm" className="absolute top-2 right-2" onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(config, null, 2));
-                toast({ title: "Copied to clipboard!" });
-            }}>
-                <Copy className="h-4 w-4"/>
-            </Button>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <JsonExportDialog showJsonExport={showJsonExport} setShowJsonExport={setShowJsonExport} config={config} />
     </div>
   );
 }
