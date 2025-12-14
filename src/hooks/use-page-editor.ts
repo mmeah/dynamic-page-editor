@@ -657,7 +657,6 @@ const reorderElement = React.useCallback((direction: 'front' | 'back' | 'forward
     reorderElement,
     setShowJsonExport,
     setShowPasswordPrompt,
-    setEditingElement,
     handleResizeStart
   };
 }
