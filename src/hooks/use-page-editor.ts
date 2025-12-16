@@ -3,6 +3,7 @@ import React from 'react';
 import { useToast } from "@/hooks/use-toast";
 import type { PageElement, ContextMenuData, PageConfig } from '@/lib/types';
 
+import { loadConfig } from '@/lib/config-service';
 const NUDGE_AMOUNT = 1;
 const LONG_PRESS_DURATION = 300;
 const PASTE_OFFSET = 10;
@@ -45,41 +46,13 @@ export function usePageEditor() {
     const configParam = params.get('config');
     const configFile = configParam ? (configParam.endsWith('.json') ? configParam : `${configParam}.json`) : 'configuration.json';
 
-    const loadConfig = async (file: string) => {
-      const res = await fetch(file);
-      if (res.ok) return res.json();
-      throw new Error(`Failed to load ${file}`);
-    };
-
-    const processConfig = (data: any) => {
-        const migratedConfig = {
-          ...data,
-          elements: data.elements.map((el: PageElement, index: number) => ({
-            ...el,
-            zIndex: el.zIndex ?? index + 1,
-            status: 'idle',
-          })),
-        };
-        setConfig(migratedConfig);
-    };
-
-    loadConfig(configFile)
-      .then(processConfig)
-      .catch(async error => {
-        console.error(`Failed to load ${configFile}`, error);
-        if (configParam) {
-          try {
-            const errorData = await loadConfig('error.json');
-            processConfig(errorData);
-            return;
-          } catch (e) {
-            console.error("Failed to load error.json", e);
-          }
-        }
+    loadConfig(configFile, configParam)
+      .then(setConfig)
+      .catch(error => {
         toast({
           variant: "destructive",
           title: "Failed to load initial configuration",
-          description: `Please make sure ${configFile} exists in the public folder.`,
+          description: error.message,
         });
       });
   }, [toast]);
