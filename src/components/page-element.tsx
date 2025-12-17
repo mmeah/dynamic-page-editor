@@ -17,6 +17,7 @@ interface PageElementProps {
   handleTouchStart: (e: React.TouchEvent, id: string) => void;
   handleElementClick: (element: PageElement) => void;
   handleResizeStart: (e: React.MouseEvent | React.TouchEvent, elementId: string) => void;
+  openEditModal: (element: PageElement) => void;
 }
 
 export const PageElementComponent: React.FC<PageElementProps> = ({
@@ -29,6 +30,7 @@ export const PageElementComponent: React.FC<PageElementProps> = ({
   handleTouchStart,
   handleElementClick,
   handleResizeStart,
+  openEditModal,
 }) => {
   return (
     <div
@@ -39,6 +41,11 @@ export const PageElementComponent: React.FC<PageElementProps> = ({
       onClick={(e) => {
           if (draggingState) return; 
           if (!isEditMode) handleElementClick(element);
+      }}
+      onDoubleClick={() => {
+        if (isEditMode) {
+          openEditModal(element);
+        }
       }}
       style={{ 
           position: 'absolute', 

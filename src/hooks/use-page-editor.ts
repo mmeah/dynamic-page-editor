@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { useToast } from "@/hooks/use-toast";
-import type { PageElement, ContextMenuData, PageConfig } from '@/lib/types';
+import type { PageElement, ContextMenuData, PageConfig, DraggingState } from '@/lib/types';
 
+import { loadConfig } from '@/lib/config-service';
 const NUDGE_AMOUNT = 1;
 const LONG_PRESS_DURATION = 300;
 const PASTE_OFFSET = 10;
@@ -19,12 +20,7 @@ export function usePageEditor() {
   const [selectedElementIds, setSelectedElementIds] = React.useState<string[]>([]);
   const [showJsonExport, setShowJsonExport] = React.useState(false);
   const [isPageLoading, setIsPageLoading] = React.useState(false);
-  const [draggingState, setDraggingState] = React.useState<{
-    isDragging: boolean;
-    initialPositions: Map<string, { x: number; y: number }>;
-    startX: number;
-    startY: number;
-  } | null>(null);
+  const [draggingState, setDraggingState] = React.useState<DraggingState | null>(null);
   const mainContainerRef = React.useRef<HTMLDivElement>(null);
   const longPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
@@ -45,41 +41,13 @@ export function usePageEditor() {
     const configParam = params.get('config');
     const configFile = configParam ? (configParam.endsWith('.json') ? configParam : `${configParam}.json`) : 'configuration.json';
 
-    const loadConfig = async (file: string) => {
-      const res = await fetch(file);
-      if (res.ok) return res.json();
-      throw new Error(`Failed to load ${file}`);
-    };
-
-    const processConfig = (data: any) => {
-        const migratedConfig = {
-          ...data,
-          elements: data.elements.map((el: PageElement, index: number) => ({
-            ...el,
-            zIndex: el.zIndex ?? index + 1,
-            status: 'idle',
-          })),
-        };
-        setConfig(migratedConfig);
-    };
-
-    loadConfig(configFile)
-      .then(processConfig)
-      .catch(async error => {
-        console.error(`Failed to load ${configFile}`, error);
-        if (configParam) {
-          try {
-            const errorData = await loadConfig('error.json');
-            processConfig(errorData);
-            return;
-          } catch (e) {
-            console.error("Failed to load error.json", e);
-          }
-        }
+    loadConfig(configFile, configParam)
+      .then(setConfig)
+      .catch(error => {
         toast({
           variant: "destructive",
           title: "Failed to load initial configuration",
-          description: `Please make sure ${configFile} exists in the public folder.`,
+          description: error.message,
         });
       });
   }, [toast]);
@@ -206,23 +174,40 @@ export function usePageEditor() {
   }, [config.elements, updateElements]);
 
   const handleElementClick = React.useCallback(async (element: PageElement) => {
-    if (isEditMode || !element.url || isPageLoading) return;
-  
-    setIsPageLoading(true);
-  
-    try {
-      const response = await fetch(element.url as string);
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-    } catch (error: any) {
-       toast({
-          variant: "destructive",
-          title: "Request Failed",
-          description: "The request to the specified URL failed.",
-        });
-    } finally {
-      setIsPageLoading(false);
+    if (isEditMode || !element.url) return;
+
+    if (element.type === 'button') {
+        try {
+            const response = await fetch(element.url as string);
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Request Failed",
+                description: "The request to the specified URL failed.",
+            });
+        }
+    } else {
+        if (isPageLoading) return;
+
+        setIsPageLoading(true);
+
+        try {
+            const response = await fetch(element.url as string);
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Request Failed",
+                description: "The request to the specified URL failed.",
+            });
+        } finally {
+            setIsPageLoading(false);
+        }
     }
   }, [isEditMode, isPageLoading, toast]);
 
