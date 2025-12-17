@@ -179,23 +179,40 @@ export function usePageEditor() {
   }, [config.elements, updateElements]);
 
   const handleElementClick = React.useCallback(async (element: PageElement) => {
-    if (isEditMode || !element.url || isPageLoading) return;
-  
-    setIsPageLoading(true);
-  
-    try {
-      const response = await fetch(element.url as string);
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-    } catch (error: any) {
-       toast({
-          variant: "destructive",
-          title: "Request Failed",
-          description: "The request to the specified URL failed.",
-        });
-    } finally {
-      setIsPageLoading(false);
+    if (isEditMode || !element.url) return;
+
+    if (element.type === 'button') {
+        try {
+            const response = await fetch(element.url as string);
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Request Failed",
+                description: "The request to the specified URL failed.",
+            });
+        }
+    } else {
+        if (isPageLoading) return;
+
+        setIsPageLoading(true);
+
+        try {
+            const response = await fetch(element.url as string);
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Request Failed",
+                description: "The request to the specified URL failed.",
+            });
+        } finally {
+            setIsPageLoading(false);
+        }
     }
   }, [isEditMode, isPageLoading, toast]);
 
