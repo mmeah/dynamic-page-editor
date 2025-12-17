@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useToast } from "@/hooks/use-toast";
-import type { PageElement, ContextMenuData, PageConfig } from '@/lib/types';
+import type { PageElement, ContextMenuData, PageConfig, DraggingState } from '@/lib/types';
 
 import { loadConfig } from '@/lib/config-service';
 const NUDGE_AMOUNT = 1;
@@ -20,12 +20,7 @@ export function usePageEditor() {
   const [selectedElementIds, setSelectedElementIds] = React.useState<string[]>([]);
   const [showJsonExport, setShowJsonExport] = React.useState(false);
   const [isPageLoading, setIsPageLoading] = React.useState(false);
-  const [draggingState, setDraggingState] = React.useState<{
-    isDragging: boolean;
-    initialPositions: Map<string, { x: number; y: number }>;
-    startX: number;
-    startY: number;
-  } | null>(null);
+  const [draggingState, setDraggingState] = React.useState<DraggingState | null>(null);
   const mainContainerRef = React.useRef<HTMLDivElement>(null);
   const longPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();

@@ -15,10 +15,10 @@ interface PageCanvasProps {
   selectedElementIds: string[];
   alignElements: (alignment: 'left' | 'right' | 'top' | 'bottom' | 'center-h' | 'center-v') => void;
   draggingState: DraggingState | null;
-  handleMouseDown: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, elementId: string) => void;
-  handleTouchStart: (e: React.TouchEvent<HTMLDivElement>, elementId: string) => void;
+  handleMouseDown: (e: React.MouseEvent, elementId: string) => void;
+  handleTouchStart: (e: React.TouchEvent, elementId: string) => void;
   handleElementClick: (element: PageElement) => void;
-  handleResizeStart: (e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>, elementId: string, direction: string) => void;
+  handleResizeStart: (e: React.MouseEvent | React.TouchEvent, elementId: string) => void;
   openEditModal: (element: PageElement) => void;
 }
 
