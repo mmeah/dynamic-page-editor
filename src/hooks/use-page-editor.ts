@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useToast } from "@/hooks/use-toast";
-import type { PageElement, ContextMenuData, PageConfig } from '@/lib/types';
+import type { PageElement, ContextMenuData, PageConfig, DraggingState } from '@/lib/types';
 
 import { loadConfig } from '@/lib/config-service';
 const NUDGE_AMOUNT = 1;
@@ -20,12 +20,7 @@ export function usePageEditor() {
   const [selectedElementIds, setSelectedElementIds] = React.useState<string[]>([]);
   const [showJsonExport, setShowJsonExport] = React.useState(false);
   const [isPageLoading, setIsPageLoading] = React.useState(false);
-  const [draggingState, setDraggingState] = React.useState<{
-    isDragging: boolean;
-    initialPositions: Map<string, { x: number; y: number }>;
-    startX: number;
-    startY: number;
-  } | null>(null);
+  const [draggingState, setDraggingState] = React.useState<DraggingState | null>(null);
   const mainContainerRef = React.useRef<HTMLDivElement>(null);
   const longPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
@@ -179,23 +174,40 @@ export function usePageEditor() {
   }, [config.elements, updateElements]);
 
   const handleElementClick = React.useCallback(async (element: PageElement) => {
-    if (isEditMode || !element.url || isPageLoading) return;
-  
-    setIsPageLoading(true);
-  
-    try {
-      const response = await fetch(element.url as string);
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-    } catch (error: any) {
-       toast({
-          variant: "destructive",
-          title: "Request Failed",
-          description: "The request to the specified URL failed.",
-        });
-    } finally {
-      setIsPageLoading(false);
+    if (isEditMode || !element.url) return;
+
+    if (element.type === 'button') {
+        try {
+            const response = await fetch(element.url as string);
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Request Failed",
+                description: "The request to the specified URL failed.",
+            });
+        }
+    } else {
+        if (isPageLoading) return;
+
+        setIsPageLoading(true);
+
+        try {
+            const response = await fetch(element.url as string);
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Request Failed",
+                description: "The request to the specified URL failed.",
+            });
+        } finally {
+            setIsPageLoading(false);
+        }
     }
   }, [isEditMode, isPageLoading, toast]);
 

@@ -36,3 +36,10 @@ export interface PageConfig {
   favicon?: string;
   elements: PageElement[];
 }
+
+export interface DraggingState {
+  isDragging: boolean;
+  initialPositions: Map<string, { x: number; y: number }>;
+  startX: number;
+  startY: number;
+}

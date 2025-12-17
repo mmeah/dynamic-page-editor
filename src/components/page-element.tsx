@@ -17,7 +17,7 @@ interface PageElementProps {
   handleTouchStart: (e: React.TouchEvent, id: string) => void;
   handleElementClick: (element: PageElement) => void;
   handleResizeStart: (e: React.MouseEvent | React.TouchEvent, elementId: string) => void;
-  openEditModal: () => void;
+  openEditModal: (element: PageElement) => void;
 }
 
 export const PageElementComponent: React.FC<PageElementProps> = ({
@@ -44,7 +44,7 @@ export const PageElementComponent: React.FC<PageElementProps> = ({
       }}
       onDoubleClick={() => {
         if (isEditMode) {
-          openEditModal();
+          openEditModal(element);
         }
       }}
       style={{ 
