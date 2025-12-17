@@ -58,11 +58,16 @@ jobs:
           
           echo "Updating package.json to version ${VERSION} on branch ${BRANCH_NAME}"
           
-          # Use npm version to update files and create a commit
+          # Use npm version to update files and create a commit if necessary
           npm version $VERSION --no-git-tag-version --allow-same-version -m "chore(version): bump to %s"
           
-          # Push the commit back to the correct branch
-          git push origin $BRANCH_NAME
+          # Check if the local branch is ahead of the remote, which indicates a new commit was created.
+          if [ $(git rev-parse HEAD) = $(git rev-parse @{u}) ]; then
+            echo "No new commit was created. The version in package.json is likely already up to date."
+          else
+            echo "New version commit created. Pushing to origin..."
+            git push origin $BRANCH_NAME
+          fi
 
       - name: Set up Node
         uses: actions/setup-node@v4
