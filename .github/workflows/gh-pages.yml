@@ -20,15 +20,56 @@ jobs:
       cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          # Fetches all history for all branches and tags to find the branch from the tag
+          fetch-depth: 0
+
+      - name: Find branch and update version
+        # This step only runs for tag pushes.
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # List all remote branches that contain the tagged commit
+          BRANCHES=$(git branch -r --contains ${{ github.sha }} | grep -v 'HEAD ->' | sed 's/origin\///g')
+          
+          # Count them
+          BRANCH_COUNT=$(echo "$BRANCHES" | wc -l)
+          
+          if [ "$BRANCH_COUNT" -ne 1 ]; then
+            echo "Error: Tag ${{ github.ref_name }} must exist on exactly one branch."
+            echo "Found on branches: $BRANCHES"
+            exit 1
+          fi
+          
+          BRANCH_NAME=$(echo "$BRANCHES")
+          echo "Found unique branch: ${BRANCH_NAME}"
+          
+          # Switch to the found branch to commit changes
+          git checkout $BRANCH_NAME
+          
+          # Configure git user for the commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Get version from the tag
+          VERSION_TAG=${{ github.ref_name }}
+          VERSION=${VERSION_TAG#v}
+          
+          echo "Updating package.json to version ${VERSION} on branch ${BRANCH_NAME}"
+          
+          # Use npm version to update files and create a commit
+          npm version $VERSION --no-git-tag-version --allow-same-version -m "chore(version): bump to %s"
+          
+          # Push the commit back to the correct branch
+          git push origin $BRANCH_NAME
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
+          
       - name: Install dependencies
         run: npm install
 
