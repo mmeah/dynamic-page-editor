@@ -60,7 +60,7 @@ jobs:
           echo "---"
           
           # --- Run NPM Version ---
-          npm version $VERSION --no-git-tag-version --allow-same-version -m "chore(version): bump to %s"
+          npm version $VERSION --no-git-tag-version --allow-same-version
           
           # --- DEBUG: AFTER NPM VERSION ---
           echo "---"
@@ -70,11 +70,14 @@ jobs:
           cat package.json
           echo "---"
           
-          # --- Check for commit and Push ---
-          if [ $(git rev-parse HEAD) = $(git rev-parse @{u}) ]; then
-            echo "No new commit was created. The version in package.json is likely already up to date."
+          # --- Check for changes, commit, and Push ---
+          # We check if package.json or package-lock.json were modified.
+          if [[ -z $(git status -s package.json package-lock.json) ]]; then
+            echo "No changes detected in package.json or package-lock.json."
           else
-            echo "New version commit created. Pushing to origin..."
+            echo "Changes detected. Committing and pushing..."
+            git add package.json package-lock.json
+            git commit -m "chore(version): bump to ${VERSION_TAG}"
             git push origin $BRANCH_NAME
           fi
 
