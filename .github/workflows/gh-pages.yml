@@ -30,38 +30,47 @@ jobs:
         # This step only runs for tag pushes.
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          # List all remote branches that contain the tagged commit
+          # --- Find Branch ---
           BRANCHES=$(git branch -r --contains ${{ github.sha }} | grep -v 'HEAD ->' | sed 's/origin\///g')
-          
-          # Count them
           BRANCH_COUNT=$(echo "$BRANCHES" | wc -l)
-          
           if [ "$BRANCH_COUNT" -ne 1 ]; then
             echo "Error: Tag ${{ github.ref_name }} must exist on exactly one branch."
             echo "Found on branches: $BRANCHES"
             exit 1
           fi
-          
           BRANCH_NAME=$(echo "$BRANCHES")
           echo "Found unique branch: ${BRANCH_NAME}"
-          
-          # Switch to the found branch to commit changes
           git checkout $BRANCH_NAME
           
-          # Configure git user for the commit
+          # --- Configure Git ---
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Get version from the tag
+          # --- Get Version ---
           VERSION_TAG=${{ github.ref_name }}
           VERSION=${VERSION_TAG#v}
+          echo "Attempting to update to version ${VERSION} on branch ${BRANCH_NAME}"
           
-          echo "Updating package.json to version ${VERSION} on branch ${BRANCH_NAME}"
+          # --- DEBUG: BEFORE NPM VERSION ---
+          echo "---"
+          echo "[DEBUG] Git status before:"
+          git status -s
+          echo "[DEBUG] package.json content before:"
+          cat package.json
+          echo "---"
           
-          # Use npm version to update files and create a commit if necessary
+          # --- Run NPM Version ---
           npm version $VERSION --no-git-tag-version --allow-same-version -m "chore(version): bump to %s"
           
-          # Check if the local branch is ahead of the remote, which indicates a new commit was created.
+          # --- DEBUG: AFTER NPM VERSION ---
+          echo "---"
+          echo "[DEBUG] Git status after:"
+          git status -s
+          echo "[DEBUG] package.json content after:"
+          cat package.json
+          echo "---"
+          
+          # --- Check for commit and Push ---
           if [ $(git rev-parse HEAD) = $(git rev-parse @{u}) ]; then
             echo "No new commit was created. The version in package.json is likely already up to date."
           else

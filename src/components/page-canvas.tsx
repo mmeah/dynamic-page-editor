@@ -15,7 +15,9 @@ interface PageCanvasProps {
   selectedElementIds: string[];
   alignElements: (alignment: 'left' | 'right' | 'top' | 'bottom' | 'center-h' | 'center-v') => void;
   draggingState: DraggingState | null;
+  selectionBox: { x: number; y: number; width: number; height: number; } | null;
   handleMouseDown: (e: React.MouseEvent, elementId: string) => void;
+  handleCanvasMouseDown: (e: React.MouseEvent) => void;
   handleTouchStart: (e: React.TouchEvent, elementId: string) => void;
   handleElementClick: (element: PageElement) => void;
   handleResizeStart: (e: React.MouseEvent | React.TouchEvent, elementId: string) => void;
@@ -33,7 +35,9 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({
   selectedElementIds,
   alignElements,
   draggingState,
+  selectionBox,
   handleMouseDown,
+  handleCanvasMouseDown,
   handleTouchStart,
   handleElementClick,
   handleResizeStart,
@@ -44,6 +48,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({
       ref={mainContainerRef}
       className="w-full h-full relative overflow-auto grid-bg"
       onContextMenu={handleContextMenu}
+      onMouseDown={handleCanvasMouseDown}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onClick={handleContainerClick}
@@ -54,6 +59,19 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({
     >
       {isEditMode && selectedElementIds.length > 1 && (
         <AlignmentToolbarComponent alignElements={alignElements} />
+      )}
+
+      {selectionBox && (
+        <div
+          className="absolute border-2 border-dashed border-primary bg-primary/20 pointer-events-none"
+          style={{
+            left: selectionBox.x,
+            top: selectionBox.y,
+            width: selectionBox.width,
+            height: selectionBox.height,
+            zIndex: 9999,
+          }}
+        />
       )}
 
       {config.elements.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)).map(element => {
