@@ -2,6 +2,8 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { VersionFooter } from "@/components/version-footer";
+import { ActivityWatcher } from '@/components/activity-watcher';
+import { PageEditorProvider } from '@/context/page-editor-context';
 
 export const metadata: Metadata = {
   title: 'Dynamic Page',
@@ -22,7 +24,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        {children}
+        <PageEditorProvider>
+          <ActivityWatcher />
+          {children}
+        </PageEditorProvider>
         <Toaster />
         <VersionFooter />
       </body>

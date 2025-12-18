@@ -8,9 +8,11 @@ const NUDGE_AMOUNT = 1;
 const LONG_PRESS_DURATION = 300;
 const PASTE_OFFSET = 10;
 
+import { usePageEditorContext } from '@/context/page-editor-context';
+
 export function usePageEditor() {
   const [isMounted, setIsMounted] = React.useState(false);
-  const [isEditMode, setIsEditMode] = React.useState(false);
+  const { isEditMode, setIsEditMode } = usePageEditorContext();
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = React.useState(false);
   const [passwordInput, setPasswordInput] = React.useState('');
@@ -77,6 +79,28 @@ export function usePageEditor() {
   }, [config]);
 
 
+  React.useEffect(() => {
+    if (config.editorPassword) {
+      const params = new URLSearchParams(window.location.search);
+      const urlPassword = params.get('editorPassword');
+      if (urlPassword) {
+        if (urlPassword === config.editorPassword) {
+          setIsAuthenticated(true);
+          const editMode = params.get('edit') === 'true';
+          if (editMode) {
+            setIsEditMode(true);
+          }
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Authentication Failed",
+            description: "Incorrect password provided in URL.",
+          });
+        }
+      }
+    }
+  }, [config.editorPassword, toast, setIsEditMode]);
+
   const handleEditModeToggle = React.useCallback((checked: boolean) => {
     if (checked && !isAuthenticated) {
       setShowPasswordPrompt(true);
@@ -86,15 +110,19 @@ export function usePageEditor() {
         setSelectedElementIds([]);
       }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setIsEditMode]);
 
   const handlePasswordSubmit = React.useCallback(() => {
     const correctPassword = config.editorPassword || 'admin';
     if (passwordInput === correctPassword) {
       setIsAuthenticated(true);
-      setIsEditMode(true);
       setShowPasswordPrompt(false);
       setPasswordInput('');
+      const params = new URLSearchParams(window.location.search);
+      const editMode = params.get('edit') === 'true';
+      if (editMode) {
+        setIsEditMode(true);
+      }
     } else {
       toast({
         variant: "destructive",
@@ -102,7 +130,7 @@ export function usePageEditor() {
         description: "Incorrect password.",
       })
     }
-  }, [config.editorPassword, passwordInput, toast]);
+  }, [config.editorPassword, passwordInput, toast, setIsEditMode]);
 
   const handleContextMenu = React.useCallback((e: React.MouseEvent) => {
     if (!isEditMode) return;
