@@ -25,6 +25,7 @@ export default function HomePage() {
     isPageLoading,
     draggingState,
     mainContainerRef,
+    selectionBox,
     handleEditModeToggle,
     handlePasswordSubmit,
     setPasswordInput,
@@ -41,6 +42,7 @@ export default function HomePage() {
     handleTouchMove,
     handleTouchEnd,
     handleContainerClick,
+    handleCanvasMouseDown,
     alignElements,
     reorderElement,
     setShowJsonExport,
@@ -73,7 +75,9 @@ export default function HomePage() {
         selectedElementIds={selectedElementIds}
         alignElements={alignElements}
         draggingState={draggingState}
+        selectionBox={selectionBox}
         handleMouseDown={handleMouseDown}
+        handleCanvasMouseDown={handleCanvasMouseDown}
         handleTouchStart={handleTouchStart}
         handleElementClick={handleElementClick}
         handleResizeStart={handleResizeStart}

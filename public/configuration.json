@@ -27,7 +27,9 @@
       "y": 94.5,
       "fontSize": 36,
       "fontFamily": "'Poppins', sans-serif",
-      "zIndex": 2
+      "zIndex": 2,
+      "status": "idle",
+      "url": "https://example.com/"
     },
     {
       "id": "1765037712481",
