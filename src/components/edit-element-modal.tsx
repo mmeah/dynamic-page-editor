@@ -133,10 +133,10 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
           
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="url" className="text-right">Click URL</Label>
-            <Input id="url" value={formData.url || ''} onChange={e => handleChange('url', e.target.value)} className="col-span-3" placeholder="Optional: REST API endpoint"/>
+            <Input id="url" value={formData.url || ''} onChange={e => handleChange('url', e.target.value)} className="col-span-3" placeholder={formData.type === 'text' ? "Optional: URL for navigation" : "Optional: REST API endpoint"}/>
           </div>
           
-          {(formData.type === 'button' || formData.type === 'icon' || formData.type === 'text') && (
+          {(formData.type === 'button' || formData.type === 'icon') && (
              <div className="grid grid-cols-4 items-start gap-4">
                 <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
                 <div className="col-span-3">

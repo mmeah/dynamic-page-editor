@@ -33,6 +33,12 @@ export function usePageEditor() {
     initialHeight: number;
   } | null>(null);
   const clipboardRef = React.useRef<PageElement[]>([]);
+  const [selectionBox, setSelectionBox] = React.useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const isSelectingRef = React.useRef(false);
+  const selectionStartRef = React.useRef({ x: 0, y: 0 });
+  const selectionBoxRef = React.useRef<{ x: number, y: number, width: number, height: number } | null>(null);
+  const justSelectedRef = React.useRef(false);
+  const shiftKeyRef = React.useRef(false);
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -176,6 +182,14 @@ export function usePageEditor() {
   const handleElementClick = React.useCallback(async (element: PageElement) => {
     if (isEditMode || !element.url) return;
 
+    if (element.type === 'text') {
+      if (element.url.toLowerCase() === 'back') {
+        window.history.back();
+      } else {
+        window.open(element.url, '_self');
+      }
+      return;
+    }
     if (element.type === 'button') {
         try {
             const response = await fetch(element.url as string);
@@ -322,24 +336,95 @@ export function usePageEditor() {
     }
   }, [resizingState, config.elements, updateElements]);
 
+  const getElementRect = React.useCallback((elementId: string) => {
+    if (!mainContainerRef.current) return null;
+    const el = config.elements.find(e => e.id === elementId);
+    const domEl = mainContainerRef.current.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement;
+    if (!el || !domEl) return null;
+    
+    return {
+      id: elementId,
+      x: el.x,
+      y: el.y,
+      width: domEl.offsetWidth,
+      height: domEl.offsetHeight,
+      left: el.x,
+      top: el.y,
+      right: el.x + domEl.offsetWidth,
+      bottom: el.y + domEl.offsetHeight,
+    };
+  }, [config.elements]);
+
   const handleGlobalMouseMove = React.useCallback((e: MouseEvent) => {
     if (draggingState) handleDragMove(e.clientX, e.clientY);
     if (resizingState?.isResizing) handleResizeMove(e.clientX, e.clientY);
+    if (isSelectingRef.current && mainContainerRef.current) {
+      const rect = mainContainerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left + mainContainerRef.current.scrollLeft;
+      const y = e.clientY - rect.top + mainContainerRef.current.scrollTop;
+      const startX = selectionStartRef.current.x;
+      const startY = selectionStartRef.current.y;
+
+      const newSelectionBox = {
+          x: Math.min(x, startX),
+          y: Math.min(y, startY),
+          width: Math.abs(x - startX),
+          height: Math.abs(y - startY),
+      };
+      selectionBoxRef.current = newSelectionBox;
+      setSelectionBox(newSelectionBox);
+    }
   }, [draggingState, resizingState, handleDragMove, handleResizeMove]);
 
-  const handleGlobalMouseUp = React.useCallback(() => {
-    handleDragEnd();
-    handleResizeEnd();
-  }, [handleDragEnd, handleResizeEnd]);
-
   React.useEffect(() => {
+    const handleMouseUp = () => {
+      handleDragEnd();
+      handleResizeEnd();
+
+      if (isSelectingRef.current) {
+        const currentSelectionBox = selectionBoxRef.current;
+        if (currentSelectionBox) {
+            const selectedIds = new Set<string>();
+            config.elements.forEach(element => {
+                const elementRect = getElementRect(element.id);
+                if (elementRect) {
+                    if (
+                        currentSelectionBox.x < elementRect.right &&
+                        currentSelectionBox.x + currentSelectionBox.width > elementRect.left &&
+                        currentSelectionBox.y < elementRect.bottom &&
+                        currentSelectionBox.y + currentSelectionBox.height > elementRect.top
+                    ) {
+                        selectedIds.add(element.id);
+                    }
+                }
+            });
+
+            if (shiftKeyRef.current) {
+                setSelectedElementIds(prevSelectedIds => {
+                    const newSelection = new Set([...prevSelectedIds, ...selectedIds]);
+                    return Array.from(newSelection);
+                });
+            } else {
+                setSelectedElementIds(Array.from(selectedIds));
+            }
+            
+            if (selectedIds.size > 0) {
+              justSelectedRef.current = true;
+            }
+        }
+        setSelectionBox(null);
+        selectionBoxRef.current = null;
+      }
+      isSelectingRef.current = false;
+    }
+
     window.addEventListener('mousemove', handleGlobalMouseMove);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('mouseup', handleMouseUp);
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('mouseup', handleMouseUp);
     }
-  }, [handleGlobalMouseMove, handleGlobalMouseUp]);
+  }, [handleGlobalMouseMove, handleDragEnd, handleResizeEnd, config.elements, getElementRect, setSelectedElementIds]);
 
 
   const handleMouseDown = React.useCallback((e: React.MouseEvent, id: string) => {
@@ -399,11 +484,36 @@ export function usePageEditor() {
   }, [handleDragEnd, handleResizeEnd]);
 
   const handleContainerClick = React.useCallback((e: React.MouseEvent) => {
+      if (justSelectedRef.current) {
+        justSelectedRef.current = false;
+        return;
+      }
       if (e.target === mainContainerRef.current) {
           setSelectedElementIds([]);
       }
       closeContextMenu();
   }, [closeContextMenu]);
+
+  const handleCanvasMouseDown = React.useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0 || !isEditMode) return;
+    
+    // Only start selection if clicking on the canvas background
+    if (e.target === mainContainerRef.current) {
+        e.preventDefault();
+        isSelectingRef.current = true;
+        shiftKeyRef.current = e.shiftKey;
+        if (!mainContainerRef.current) return;
+        const rect = mainContainerRef.current.getBoundingClientRect();
+        selectionStartRef.current = {
+            x: e.clientX - rect.left + mainContainerRef.current.scrollLeft,
+            y: e.clientY - rect.top + mainContainerRef.current.scrollTop,
+        };
+        setSelectionBox({ ...selectionStartRef.current, width: 0, height: 0 });
+        if (!e.shiftKey) {
+            setSelectedElementIds([]);
+        }
+    }
+  }, [isEditMode, setSelectedElementIds]);
 
   const handleCopy = React.useCallback(() => {
     if (selectedElementIds.length > 0) {
@@ -495,25 +605,6 @@ export function usePageEditor() {
         window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
-  
-  const getElementRect = React.useCallback((elementId: string) => {
-    if (!mainContainerRef.current) return null;
-    const el = config.elements.find(e => e.id === elementId);
-    const domEl = mainContainerRef.current.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement;
-    if (!el || !domEl) return null;
-    
-    return {
-      id: elementId,
-      x: el.x,
-      y: el.y,
-      width: domEl.offsetWidth,
-      height: domEl.offsetHeight,
-      left: el.x,
-      top: el.y,
-      right: el.x + domEl.offsetWidth,
-      bottom: el.y + domEl.offsetHeight,
-    };
-  }, [config.elements]);
 
   const alignElements = React.useCallback((alignment: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom') => {
     if (selectedElementIds.length < 2) return;
@@ -622,6 +713,7 @@ const reorderElement = React.useCallback((direction: 'front' | 'back' | 'forward
     draggingState,
     mainContainerRef,
     resizingState,
+    selectionBox,
     handleEditModeToggle,
     handlePasswordSubmit,
     setPasswordInput,
@@ -638,6 +730,7 @@ const reorderElement = React.useCallback((direction: 'front' | 'back' | 'forward
     handleTouchMove,
     handleTouchEnd,
     handleContainerClick,
+    handleCanvasMouseDown,
     alignElements,
     reorderElement,
     setShowJsonExport,
