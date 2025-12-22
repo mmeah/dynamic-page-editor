@@ -1,19 +1,18 @@
+
 'use client';
 
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { usePageEditor } from '@/hooks/use-page-editor';
 
-interface PageEditorContextType {
-  isEditMode: boolean;
-  setIsEditMode: (isEditMode: boolean) => void;
-}
+type PageEditorContextType = ReturnType<typeof usePageEditor>;
 
 const PageEditorContext = createContext<PageEditorContextType | undefined>(undefined);
 
 export const PageEditorProvider = ({ children }: { children: ReactNode }) => {
-  const [isEditMode, setIsEditMode] = useState(false);
+  const pageEditor = usePageEditor();
 
   return (
-    <PageEditorContext.Provider value={{ isEditMode, setIsEditMode }}>
+    <PageEditorContext.Provider value={pageEditor}>
       {children}
     </PageEditorContext.Provider>
   );
@@ -26,3 +25,4 @@ export const usePageEditorContext = () => {
   }
   return context;
 };
+

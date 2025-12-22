@@ -43,3 +43,15 @@ export interface DraggingState {
   startX: number;
   startY: number;
 }
+
+export interface ElementRect {
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  }
