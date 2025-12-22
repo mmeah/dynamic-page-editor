@@ -1,6 +1,6 @@
 {
   "name": "nextn",
-  "version": "0.2.10-dev",
+  "version": "0.2.15",
   "homepage": "https://mmeah.github.io/dynamic-page-editor",
   "private": true,
   "scripts": {
