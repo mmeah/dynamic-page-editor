@@ -22,6 +22,9 @@ export function useElementInteractions(
   const justSelectedRef = React.useRef(false);
   const shiftKeyRef = React.useRef(false);
 
+  const isDraggingRef = React.useRef(false);
+  const isResizingRef = React.useRef(false);
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (mainContainerRef.current) {
         const rect = mainContainerRef.current.getBoundingClientRect();
@@ -33,7 +36,7 @@ export function useElementInteractions(
   };
 
   const updateElements = React.useCallback((newElements: PageElement[], skipHistory = false) => {
-    dispatch({ type: 'UPDATE_ELEMENTS', payload: newElements });
+    dispatch({ type: 'UPDATE_ELEMENTS', payload: { elements: newElements, skipHistory } });
   }, [dispatch]);
   
   const closeContextMenu = React.useCallback(() => {
@@ -75,7 +78,7 @@ export function useElementInteractions(
   const deleteElement = React.useCallback(() => {
     if (selectedElementIds.length > 0) {
       updateElements(config.elements.filter(el => !selectedElementIds.includes(el.id)));
-      dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: [] });
+      dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: [], skipHistory: true } });
     }
     closeContextMenu();
   }, [config.elements, selectedElementIds, updateElements, closeContextMenu, dispatch]);
@@ -143,6 +146,7 @@ export function useElementInteractions(
 
     const handleDragStart = React.useCallback((id: string, clientX: number, clientY: number, shiftKey = false) => {
     if (!isEditMode) return;
+    isDraggingRef.current = false;
 
     let newSelectedIds: string[];
     if (shiftKey) {
@@ -158,7 +162,7 @@ export function useElementInteractions(
         newSelectedIds = selectedElementIds;
       }
     }
-    dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: newSelectedIds });
+    dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: newSelectedIds, skipHistory: true } });
 
     const initialPositions = new Map();
     config.elements.forEach(el => {
@@ -177,6 +181,11 @@ export function useElementInteractions(
 
   const handleDragMove = React.useCallback((clientX: number, clientY: number) => {
     if (!draggingState || !mainContainerRef.current) return;
+
+    if (!isDraggingRef.current) {
+        updateElements(config.elements, false);
+        isDraggingRef.current = true;
+    }
     
     const dx = clientX - draggingState.startX;
     const dy = clientY - draggingState.startY;
@@ -197,17 +206,22 @@ export function useElementInteractions(
 
   const handleDragEnd = React.useCallback(() => {
     if (draggingState) {
+        if(isDraggingRef.current) {
+            updateElements(config.elements, false);
+        }
+        isDraggingRef.current = false;
         dispatch({ type: 'SET_DRAGGING_STATE', payload: null });
     }
     if (longPressTimeoutRef.current) {
         clearTimeout(longPressTimeoutRef.current);
         longPressTimeoutRef.current = null;
     }
-  }, [draggingState, dispatch]);
+  }, [draggingState, dispatch, config.elements, updateElements]);
   
   const handleResizeStart = React.useCallback((e: React.MouseEvent | React.TouchEvent, elementId: string) => {
     e.stopPropagation();
     if (!isEditMode) return;
+    isResizingRef.current = false;
   
     const element = config.elements.find(el => el.id === elementId);
     if (!element || !element.width || !element.height) return;
@@ -227,6 +241,11 @@ export function useElementInteractions(
 
   const handleResizeMove = React.useCallback((clientX: number, clientY: number) => {
     if (!resizingState || !resizingState.isResizing) return;
+
+    if (!isResizingRef.current) {
+        updateElements(config.elements, false);
+        isResizingRef.current = true;
+    }
   
     const dx = clientX - resizingState.startX;
     const element = config.elements.find(el => el.id === resizingState.elementId);
@@ -247,10 +266,10 @@ export function useElementInteractions(
   
   const handleResizeEnd = React.useCallback(() => {
     if (resizingState?.isResizing) {
-      updateElements([...config.elements]);
-      dispatch({ type: 'SET_RESIZING_STATE', payload: null });
+        isResizingRef.current = false;
+        dispatch({ type: 'SET_RESIZING_STATE', payload: null });
     }
-  }, [resizingState, config.elements, updateElements, dispatch]);
+  }, [resizingState, dispatch]);
 
   const getElementRect = React.useCallback((elementId: string): ElementRect | null => {
     if (!mainContainerRef.current) return null;
@@ -316,9 +335,9 @@ export function useElementInteractions(
             });
 
             if (shiftKeyRef.current) {
-                dispatch({type: 'SET_SELECTED_ELEMENT_IDS', payload: Array.from(new Set([...selectedElementIds, ...selectedIds]))});
+                dispatch({type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: Array.from(new Set([...selectedElementIds, ...selectedIds])) }});
             } else {
-                dispatch({type: 'SET_SELECTED_ELEMENT_IDS', payload: Array.from(selectedIds)});
+                dispatch({type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: Array.from(selectedIds) }});
             }
             
             if (selectedIds.size > 0) {
@@ -402,7 +421,7 @@ export function useElementInteractions(
         return;
       }
       if (e.target === mainContainerRef.current) {
-        dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: [] });
+        dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: [] } });
       }
       closeContextMenu();
   }, [closeContextMenu, mainContainerRef, dispatch]);
@@ -423,7 +442,7 @@ export function useElementInteractions(
         };
         dispatch({ type: 'SET_SELECTION_BOX', payload: { ...selectionStartRef.current, width: 0, height: 0 } });
         if (!e.shiftKey) {
-            dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: [] });
+            dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: [], skipHistory: true } });
         }
     }
   }, [isEditMode, dispatch, mainContainerRef]);
@@ -434,7 +453,7 @@ export function useElementInteractions(
         const target = e.target as HTMLElement;
         const elementId = target.closest('[data-element-id]')?.getAttribute('data-element-id');
         if (elementId && !selectedElementIds.includes(elementId)) {
-            dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: [elementId] });
+            dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: [elementId] } });
         }
 
         dispatch({ type: 'SET_CONTEXT_MENU', payload: { visible: true, x: e.clientX, y: e.clientY, elementId: selectedElementIds.length > 0 ? selectedElementIds[0] : undefined } });

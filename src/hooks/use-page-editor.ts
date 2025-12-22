@@ -78,7 +78,11 @@ export function usePageEditor() {
 
   const { handleCopy, handlePaste, handleSelectAll } = useClipboard(state, dispatch);
 
-  useKeyboardShortcuts(state, dispatch, { handleCopy, handlePaste, deleteElement, handleSelectAll }, mousePosition);
+  const handleUndo = React.useCallback(() => {
+    dispatch({ type: 'UNDO' });
+  }, [dispatch]);
+
+  useKeyboardShortcuts(state, dispatch, { handleCopy, handlePaste, deleteElement, handleSelectAll, handleUndo }, mousePosition);
 
   return {
     ...state,
@@ -106,5 +110,6 @@ export function usePageEditor() {
     setShowPasswordPrompt: (payload: boolean) => dispatch({ type: 'SET_SHOW_PASSWORD_PROMPT', payload }),
     handleResizeStart,
     handleMouseMove,
+    handleUndo,
   };
 }

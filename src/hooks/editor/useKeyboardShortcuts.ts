@@ -9,6 +9,7 @@ interface KeyboardActions {
     handlePaste: (mousePosition: { x: number, y: number }) => void;
     deleteElement: () => void;
     handleSelectAll: () => void;
+    handleUndo: () => void;
 }
 
 export function useKeyboardShortcuts(
@@ -18,7 +19,7 @@ export function useKeyboardShortcuts(
     mousePosition: React.MutableRefObject<{ x: number; y: number; }>,
 ) {
   const { isEditMode, editingElement, selectedElementIds, config } = state;
-  const { handleCopy, handlePaste, deleteElement, handleSelectAll } = actions;
+  const { handleCopy, handlePaste, deleteElement, handleSelectAll, handleUndo } = actions;
 
   const handleKeyDown = React.useCallback(async (e: KeyboardEvent) => {
     if (!isEditMode || editingElement) return;
@@ -41,6 +42,11 @@ export function useKeyboardShortcuts(
             setTimeout(() => {
                 handleCopy();
             }, 0);
+            return;
+        }
+        if (e.key === 'z') {
+            e.preventDefault();
+            handleUndo();
             return;
         }
     }
@@ -74,12 +80,12 @@ export function useKeyboardShortcuts(
     
     e.preventDefault();
 
-    dispatch({type: 'UPDATE_ELEMENTS', payload:
+    dispatch({type: 'UPDATE_ELEMENTS', payload: { elements:
         config.elements.map(el => 
             selectedElementIds.includes(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
         )
-    });
-  }, [isEditMode, editingElement, selectedElementIds, config.elements, dispatch, handleCopy, handlePaste, deleteElement, handleSelectAll, mousePosition]);
+    }});
+  }, [isEditMode, editingElement, selectedElementIds, config.elements, dispatch, handleCopy, handlePaste, deleteElement, handleSelectAll, handleUndo, mousePosition]);
 
 
   React.useEffect(() => {

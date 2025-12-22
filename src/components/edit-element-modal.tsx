@@ -6,7 +6,7 @@ import { Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PageElement, PageConfig } from '@/lib/types';
@@ -107,6 +107,9 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit {element.type}</DialogTitle>
+          <DialogDescription>
+            Click cancel to undo changes, or save to apply settings.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           {formData.type === 'image' && (
@@ -121,7 +124,7 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
                   <Label htmlFor="height" className="text-center col-span-1">Height</Label>
                   <Input id="height" type="number" value={formData.height || ''} onChange={e => handleDimensionChange('height', e.target.value)} className="col-span-1" />
                   {/* Hidden image to get natural dimensions for aspect ratio */}
-                  <img src={formData.src} onLoad={updateAspectRatio} style={{display: 'none'}} alt="hidden for aspect ratio" />
+                  {formData.src && <img src={formData.src} onLoad={updateAspectRatio} style={{display: 'none'}} alt="hidden for aspect ratio" />}
               </div>
             </>
           )}
