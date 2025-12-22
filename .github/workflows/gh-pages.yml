@@ -34,7 +34,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # --- Find Branch ---
-          BRANCHES=$(git branch -r --contains ${{ github.sha }} | grep -v 'HEAD ->' | sed 's/origin\///g')
+          BRANCHES=$(git branch -r --contains ${{ github.sha }} | grep -v 'HEAD ->' | grep -v 'chore/version-bump-' | sed 's/origin\///g')
           BRANCH_COUNT=$(echo "$BRANCHES" | wc -l)
           if [ "$BRANCH_COUNT" -ne 1 ]; then
             echo "Error: Tag ${{ github.ref_name }} must exist on exactly one branch."
