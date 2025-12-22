@@ -29,6 +29,8 @@ jobs:
       - name: Find branch and update version
         # This step only runs for tag pushes.
         if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # --- Find Branch ---
           BRANCHES=$(git branch -r --contains ${{ github.sha }} | grep -v 'HEAD ->' | sed 's/origin\///g')
@@ -75,10 +77,17 @@ jobs:
           if [[ -z $(git status -s package.json package-lock.json) ]]; then
             echo "No changes detected in package.json or package-lock.json."
           else
-            echo "Changes detected. Committing and pushing..."
             git add package.json package-lock.json
             git commit -m "chore(version): bump to ${VERSION_TAG}"
-            git push origin $BRANCH_NAME
+            if [ "$BRANCH_NAME" = "main" ]; then
+              echo "Changes detected. Main branch is protected. Creating a pull request..."
+              BUMP_BRANCH_NAME="chore/version-bump-${VERSION_TAG}"
+              git push origin HEAD:$BUMP_BRANCH_NAME
+              gh pr create --base "$BRANCH_NAME" --head "$BUMP_BRANCH_NAME" --title "chore(version): bump to ${VERSION_TAG}" --body "Automatic version bump to ${VERSION_TAG}."
+            else
+              echo "Changes detected. Committing and pushing..."
+              git push origin $BRANCH_NAME
+            fi
           fi
 
       - name: Set up Node
