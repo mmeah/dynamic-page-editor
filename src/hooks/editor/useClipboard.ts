@@ -52,8 +52,8 @@ export function useClipboard(
         });
 
         const newElementsIds = newElements.map(el => el.id);
-        dispatch({ type: 'UPDATE_ELEMENTS', payload: [...config.elements, ...newElements] });
-        dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: newElementsIds });
+        dispatch({ type: 'UPDATE_ELEMENTS', payload: { elements: [...config.elements, ...newElements] } });
+        dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: newElementsIds } });
         toast({ title: `Pasted ${newElements.length} element(s)` });
       }
     } catch (error) {
@@ -68,7 +68,7 @@ export function useClipboard(
 
   const handleSelectAll = React.useCallback(() => {
     const allElementIds = config.elements.map(el => el.id);
-    dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: allElementIds });
+    dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: allElementIds } });
   }, [config.elements, dispatch]);
 
   return {

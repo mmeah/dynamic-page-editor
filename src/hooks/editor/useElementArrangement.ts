@@ -52,7 +52,7 @@ export function useElementArrangement(
         return { ...el, x: newX, y: newY };
     });
 
-    dispatch({ type: 'UPDATE_ELEMENTS', payload: newElements });
+    dispatch({ type: 'UPDATE_ELEMENTS', payload: { elements: newElements } });
 }, [config.elements, selectedElementIds, dispatch, getElementRect]);
 
 const reorderElement = React.useCallback((direction: 'front' | 'back' | 'forward' | 'backward') => {
@@ -99,7 +99,7 @@ const reorderElement = React.useCallback((direction: 'front' | 'back' | 'forward
     const finalSorted = newElements.sort((a,b) => (a.zIndex || 0) - (b.zIndex || 0));
     finalSorted.forEach((el, index) => el.zIndex = index + 1);
 
-    dispatch({ type: 'UPDATE_ELEMENTS', payload: finalSorted });
+    dispatch({ type: 'UPDATE_ELEMENTS', payload: { elements: finalSorted } });
     closeContextMenu();
 }, [config.elements, selectedElementIds, dispatch, closeContextMenu]);
 
