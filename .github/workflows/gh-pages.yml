@@ -40,8 +40,8 @@ jobs:
             echo "Found on branches: $BRANCHES"
             exit 1
           fi
-          BRANCH_NAME=$(echo "$BRANCHES")
-          echo "Found unique branch: ${BRANCH_NAME}"
+          BRANCH_NAME=$(echo "$BRANCHES" | tr -d '[:space:]')
+          echo "Found unique branch: '${BRANCH_NAME}'"
           git checkout $BRANCH_NAME
           
           # --- Configure Git ---
@@ -79,12 +79,14 @@ jobs:
           else
             git add package.json package-lock.json
             git commit -m "chore(version): bump to ${VERSION_TAG}"
-            if [ "$BRANCH_NAME" = "main" ]; then
-              echo "Changes detected. Main branch is protected. Creating a pull request..."
+            echo "Checking if branch '${BRANCH_NAME}' is the main branch."
+            if [[ "$BRANCH_NAME" == "main" ]]; then
+              echo "Branch is main. Creating a pull request..."
               BUMP_BRANCH_NAME="chore/version-bump-${VERSION_TAG}"
               git push origin HEAD:$BUMP_BRANCH_NAME
               gh pr create --base "$BRANCH_NAME" --head "$BUMP_BRANCH_NAME" --title "chore(version): bump to ${VERSION_TAG}" --body "Automatic version bump to ${VERSION_TAG}."
             else
+              echo "Branch is not main (it is '${BRANCH_NAME}'). Pushing directly."
               echo "Changes detected. Committing and pushing..."
               git push origin $BRANCH_NAME
             fi
