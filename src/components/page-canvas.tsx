@@ -10,6 +10,7 @@ interface PageCanvasProps {
   handleTouchMove: (event: React.TouchEvent<HTMLDivElement>) => void;
   handleTouchEnd: (event: React.TouchEvent<HTMLDivElement>) => void;
   handleContainerClick: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  onMouseMove: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   config: PageConfig;
   isEditMode: boolean;
   selectedElementIds: string[];
@@ -30,6 +31,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({
   handleTouchMove,
   handleTouchEnd,
   handleContainerClick,
+  onMouseMove,
   config,
   isEditMode,
   selectedElementIds,
@@ -52,6 +54,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onClick={handleContainerClick}
+      onMouseMove={onMouseMove}
       style={{
         backgroundSize: '20px 20px',
         backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
