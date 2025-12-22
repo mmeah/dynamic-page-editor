@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import { usePageEditor } from '@/hooks/use-page-editor';
+import { usePageEditorContext } from '@/context/page-editor-context';
 import { JsonExportDialog } from '@/components/json-export';
 import { ContextMenuComponent } from '@/components/context-menu';
 import { EditElementModal } from '@/components/edit-element-modal';
@@ -47,8 +47,9 @@ export default function HomePage() {
     reorderElement,
     setShowJsonExport,
     setShowPasswordPrompt,
-    handleResizeStart
-  } = usePageEditor();
+    handleResizeStart,
+    handleMouseMove,
+  } = usePageEditorContext();
 
   if (!isMounted) {
     return null;
@@ -70,6 +71,7 @@ export default function HomePage() {
         handleTouchMove={handleTouchMove}
         handleTouchEnd={handleTouchEnd}
         handleContainerClick={handleContainerClick}
+        onMouseMove={handleMouseMove}
         config={config}
         isEditMode={isEditMode}
         selectedElementIds={selectedElementIds}

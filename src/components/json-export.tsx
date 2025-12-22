@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Copy, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { PageConfig } from '@/lib/types';
@@ -117,6 +117,9 @@ export function JsonExportDialog({ showJsonExport, setShowJsonExport, config }: 
                     onMouseDown={handleDragMouseDown}
                 >
                     <DialogTitle>Page Configuration</DialogTitle>
+                    <DialogDescription>
+                        View and copy the JSON configuration for the current page.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="flex-grow px-4 pb-4 relative">
                     <p className="text-sm text-muted-foreground mb-2">Copy this JSON to persist your changes.</p>
