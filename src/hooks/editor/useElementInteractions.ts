@@ -54,9 +54,9 @@ export function useElementInteractions(
       text: type === ElementType.Text ? 'New Text' : undefined,
       icon: type === ElementType.Icon ? 'Smile' : undefined,
       src: type === ElementType.Image ? (config.defaultImageUrl || `https://picsum.photos/seed/${Date.now()}/200/300`) : undefined,
-      width: type === ElementType.Image ? 200 : undefined,
-      height: type === ElementType.Image ? 300 : undefined,
-      aspectRatio: type === ElementType.Image ? 200/300 : undefined,
+      width: type === ElementType.Image ? (config.defaultImageWidth || 200) : undefined,
+      height: type === ElementType.Image ? (config.defaultImageHeight || 300) : undefined,
+      aspectRatio: type === ElementType.Image ? ((config.defaultImageWidth || 200) / (config.defaultImageHeight || 300)) : undefined,
       url: type === ElementType.Button ? config.defaultRestUrl : undefined,
       color: '#87CEEB',
       fontSize: 16,
@@ -73,7 +73,7 @@ export function useElementInteractions(
     }
     updateElements([...config.elements, newElement]);
     closeContextMenu();
-  }, [config.elements, config.defaultImageUrl, config.defaultRestUrl, contextMenu.x, contextMenu.y, updateElements, closeContextMenu, mainContainerRef]);
+  }, [config.elements, config.defaultImageUrl, config.defaultRestUrl, config.defaultImageWidth, config.defaultImageHeight, contextMenu.x, contextMenu.y, updateElements, closeContextMenu, mainContainerRef]);
 
   const deleteElement = React.useCallback(() => {
     if (selectedElementIds.length > 0) {

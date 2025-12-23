@@ -78,7 +78,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({
       )}
 
       {config.elements.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)).map(element => {
-        const isSelected = isEditMode && selectedElementIds.includes(element.id);
+        const isSelected = isEditMode && (selectedElementIds || []).includes(element.id);
         const canDrag = isEditMode && (element.type !== ElementType.Image || isSelected);
 
         return (

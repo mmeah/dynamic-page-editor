@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import { Save } from 'lucide-react';
+import { Save, Link, Unlink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { LucideIcon, iconList } from '@/lib/icons';
 
 export function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
   const [formData, setFormData] = React.useState(element);
+  const [isRatioLocked, setIsRatioLocked] = React.useState(!!element.aspectRatio);
   const selectedIconRef = React.useRef<HTMLButtonElement>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState("");
@@ -55,29 +56,30 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
 
   const handleDimensionChange = (field: 'width' | 'height', value: string) => {
     if (value === '') {
-      setFormData(prev => ({ ...prev, [field]: undefined, aspectRatio: prev.aspectRatio }));
+      setFormData(prev => ({ ...prev, [field]: undefined }));
       return;
     }
 
     const numValue = parseInt(value, 10);
     if (isNaN(numValue) || numValue <= 0) return;
 
-    let newWidth = formData.width;
-    let newHeight = formData.height;
-    const aspectRatio = formData.aspectRatio;
-
-    if (field === 'width') {
-      newWidth = numValue;
-      if (aspectRatio) {
-        newHeight = Math.round(numValue / aspectRatio);
-      }
-    } else { // height
-      newHeight = numValue;
-      if (aspectRatio) {
-        newWidth = Math.round(numValue * aspectRatio);
-      }
+    if (isRatioLocked && formData.aspectRatio) {
+        let newWidth = formData.width;
+        let newHeight = formData.height;
+        if (field === 'width') {
+            newWidth = numValue;
+            newHeight = Math.round(numValue / formData.aspectRatio);
+        } else { // height
+            newHeight = numValue;
+            newWidth = Math.round(numValue * formData.aspectRatio);
+        }
+        setFormData(prev => ({...prev, width: newWidth, height: newHeight}));
+    } else {
+        const newFormData = {...formData, [field]: numValue};
+        const {width, height} = newFormData;
+        const newAspectRatio = width && height ? width / height : undefined;
+        setFormData({...newFormData, aspectRatio: newAspectRatio});
     }
-    setFormData(prev => ({...prev, width: newWidth, height: newHeight}));
   };
 
   const updateAspectRatio = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -119,12 +121,22 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
                   <Input id="src" value={formData.src || ''} onChange={e => handleChange('src', e.target.value)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="width" className="text-right">Width</Label>
-                  <Input id="width" type="number" value={formData.width || ''} onChange={e => handleDimensionChange('width', e.target.value)} className="col-span-1" />
-                  <Label htmlFor="height" className="text-center col-span-1">Height</Label>
-                  <Input id="height" type="number" value={formData.height || ''} onChange={e => handleDimensionChange('height', e.target.value)} className="col-span-1" />
-                  {/* Hidden image to get natural dimensions for aspect ratio */}
-                  {formData.src && <img src={formData.src} onLoad={updateAspectRatio} style={{display: 'none'}} alt="hidden for aspect ratio" />}
+                <Label className="text-right">Dimensions</Label>
+                <div className="col-span-3 flex items-center justify-start gap-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="width">W</Label>
+                    <Input id="width" type="number" value={formData.width || ''} onChange={e => handleDimensionChange('width', e.target.value)} className="w-24" />
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setIsRatioLocked(prev => !prev)}>
+                    {isRatioLocked ? <Link className="h-4 w-4" /> : <Unlink className="h-4 w-4" />}
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="height">H</Label>
+                    <Input id="height" type="number" value={formData.height || ''} onChange={e => handleDimensionChange('height', e.target.value)} className="w-24" />
+                  </div>
+                </div>
+                {/* Hidden image to get natural dimensions for aspect ratio */}
+                {formData.src && <img src={formData.src} onLoad={updateAspectRatio} style={{display: 'none'}} alt="hidden for aspect ratio" />}
               </div>
             </>
           )}

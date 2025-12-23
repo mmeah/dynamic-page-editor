@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, BringToFront, ChevronsUp, ChevronsDown, SendToBack, Trash2, Square, Type, Smile, ImageIcon } from 'lucide-react';
-import type { ContextMenuData, ElementType } from '@/lib/types';
+import { type ContextMenuData, ElementType } from '@/lib/types';
 
 interface ContextMenuProps {
   contextMenu: ContextMenuData;
