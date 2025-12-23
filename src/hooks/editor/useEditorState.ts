@@ -104,12 +104,13 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         };
     case 'UNDO':
       if (state.history.length > 0) {
-        const previousState = state.history.pop();
+        const newHistory = [...state.history];
+        const previousState = newHistory.pop();
         return {
           ...state,
           config: { ...state.config, elements: previousState!.elements },
           selectedElementIds: previousState!.selectedElementIds,
-          history: [...state.history],
+          history: newHistory,
         };
       }
       return state;

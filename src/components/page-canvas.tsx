@@ -60,7 +60,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({
         backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
       }}
     >
-      {isEditMode && selectedElementIds.length > 1 && (
+      {isEditMode && selectedElementIds && selectedElementIds.length > 1 && (
         <AlignmentToolbarComponent alignElements={alignElements} />
       )}
 

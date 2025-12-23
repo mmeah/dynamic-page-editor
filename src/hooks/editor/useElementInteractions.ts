@@ -2,7 +2,7 @@
 import React from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { EditorAction, EditorState } from './useEditorState';
-import { PageElement, ElementRect } from '@/lib/types';
+import { PageElement, ElementRect, ElementType } from '@/lib/types';
 
 const LONG_PRESS_DURATION = 300;
 
@@ -51,19 +51,19 @@ export function useElementInteractions(
       x: contextMenu.x,
       y: contextMenu.y,
       zIndex: maxZIndex + 1,
-      text: type === 'text' ? 'New Text' : undefined,
-      icon: type === 'icon' ? 'Smile' : undefined,
-      src: type === 'image' ? (config.defaultImageUrl || `https://picsum.photos/seed/${Date.now()}/200/300`) : undefined,
-      width: type === 'image' ? 200 : undefined,
-      height: type === 'image' ? 300 : undefined,
-      aspectRatio: type === 'image' ? 200/300 : undefined,
-      url: type === 'button' ? config.defaultRestUrl : undefined,
+      text: type === ElementType.Text ? 'New Text' : undefined,
+      icon: type === ElementType.Icon ? 'Smile' : undefined,
+      src: type === ElementType.Image ? (config.defaultImageUrl || `https://picsum.photos/seed/${Date.now()}/200/300`) : undefined,
+      width: type === ElementType.Image ? 200 : undefined,
+      height: type === ElementType.Image ? 300 : undefined,
+      aspectRatio: type === ElementType.Image ? 200/300 : undefined,
+      url: type === ElementType.Button ? config.defaultRestUrl : undefined,
       color: '#87CEEB',
       fontSize: 16,
       fontFamily: "'PT Sans', sans-serif",
       status: 'idle',
     };
-    if (newElement.type === 'button') {
+    if (newElement.type === ElementType.Button) {
         newElement.text = 'New Button';
     }
     if (mainContainerRef.current) {
@@ -101,7 +101,7 @@ export function useElementInteractions(
   const handleElementClick = React.useCallback(async (element: PageElement) => {
     if (isEditMode || !element.url) return;
 
-    if (element.type === 'text') {
+    if (element.type === ElementType.Text) {
       if (element.url.toLowerCase() === 'back') {
         window.history.back();
       } else {
@@ -109,7 +109,7 @@ export function useElementInteractions(
       }
       return;
     }
-    if (element.type === 'button') {
+    if (element.type === ElementType.Button) {
         try {
             const response = await fetch(element.url as string);
             if (!response.ok) {

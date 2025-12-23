@@ -1,5 +1,10 @@
 
-export type ElementType = 'button' | 'text' | 'icon' | 'image';
+export enum ElementType {
+  Button = 'button',
+  Text = 'text',
+  Icon = 'icon',
+  Image = 'image',
+}
 
 export type ElementStatus = 'idle' | 'loading' | 'success' | 'error';
 
