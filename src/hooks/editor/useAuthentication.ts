@@ -38,7 +38,7 @@ export function useAuthentication(
     } else {
         dispatch({ type: 'SET_IS_EDIT_MODE', payload: checked });
       if (!checked) {
-        dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: [] });
+        dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: [] } });
       }
     }
   }, [isAuthenticated, dispatch]);

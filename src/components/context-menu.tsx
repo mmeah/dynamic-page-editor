@@ -3,14 +3,14 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, BringToFront, ChevronsUp, ChevronsDown, SendToBack, Trash2, Square, Type, Smile, ImageIcon } from 'lucide-react';
-import type { ContextMenuData } from '@/lib/types';
+import { type ContextMenuData, ElementType } from '@/lib/types';
 
 interface ContextMenuProps {
   contextMenu: ContextMenuData;
   openEditModal: () => void;
   reorderElement: (direction: 'front' | 'back' | 'forward' | 'backward') => void;
   deleteElement: () => void;
-  addElement: (type: 'button' | 'text' | 'icon' | 'image') => void;
+  addElement: (type: ElementType) => void;
   selectedElementIds: string[];
 }
 
@@ -41,10 +41,10 @@ export const ContextMenuComponent: React.FC<ContextMenuProps> = ({
             </>
           ) : (
             <>
-              <Button variant="ghost" className="justify-start" onClick={() => addElement('button')}><Square className="mr-2 h-4 w-4" /> Add Button</Button>
-              <Button variant="ghost" className="justify-start" onClick={() => addElement('text')}><Type className="mr-2 h-4 w-4" /> Add Text</Button>
-              <Button variant="ghost" className="justify-start" onClick={() => addElement('icon')}><Smile className="mr-2 h-4 w-4" /> Add Icon</Button>
-              <Button variant="ghost" className="justify-start" onClick={() => addElement('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Image</Button>
+              <Button variant="ghost" className="justify-start" onClick={() => addElement(ElementType.Button)}><Square className="mr-2 h-4 w-4" /> Add Button</Button>
+              <Button variant="ghost" className="justify-start" onClick={() => addElement(ElementType.Text)}><Type className="mr-2 h-4 w-4" /> Add Text</Button>
+              <Button variant="ghost" className="justify-start" onClick={() => addElement(ElementType.Icon)}><Smile className="mr-2 h-4 w-4" /> Add Icon</Button>
+              <Button variant="ghost" className="justify-start" onClick={() => addElement(ElementType.Image)}><ImageIcon className="mr-2 h-4 w-4" /> Add Image</Button>
             </>
           )}
         </div>

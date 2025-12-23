@@ -26,6 +26,7 @@ export default function HomePage() {
     draggingState,
     mainContainerRef,
     selectionBox,
+    history,
     handleEditModeToggle,
     handlePasswordSubmit,
     setPasswordInput,
@@ -49,6 +50,7 @@ export default function HomePage() {
     setShowPasswordPrompt,
     handleResizeStart,
     handleMouseMove,
+    handleUndo,
   } = usePageEditorContext();
 
   if (!isMounted) {
@@ -63,6 +65,8 @@ export default function HomePage() {
         isEditMode={isEditMode}
         handleEditModeToggle={handleEditModeToggle}
         setShowJsonExport={setShowJsonExport}
+        handleUndo={handleUndo}
+        canUndo={history.length > 0}
       />
 
       <PageCanvas

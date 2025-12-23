@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { VALID_ELEMENT_TYPES } from '@/lib/config';
 import type { PageConfig } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,17 @@ export function JsonExportDialog({ showJsonExport, setShowJsonExport, config }: 
 
   const dragStartRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
+
+  // Create a cleaned version of the config without the 'status' property
+  const cleanedConfig = {
+    ...config,
+    elements: config.elements
+      .filter(element => VALID_ELEMENT_TYPES.includes(element.type))
+      .map(element => {
+        const { status, ...remaningAttrs } = element;
+        return remaningAttrs;
+      }),
+  };
 
   useEffect(() => {
     if (showJsonExport) {
@@ -110,6 +122,12 @@ export function JsonExportDialog({ showJsonExport, setShowJsonExport, config }: 
                 position: 'fixed'
             }}
             onMouseDown={(e:any) => e.stopPropagation()} // Prevent dialog closing on content click
+            onKeyDown={(e) => {
+                // Stop propagation for copy and select all events to prevent global shortcuts from firing
+                if ((e.metaKey || e.ctrlKey) && (e.key === 'c' || e.key === 'a')) {
+                    e.stopPropagation();
+                }
+            }}
         >
             <div className="flex flex-col h-full">
                 <DialogHeader 
@@ -125,7 +143,7 @@ export function JsonExportDialog({ showJsonExport, setShowJsonExport, config }: 
                     <p className="text-sm text-muted-foreground mb-2">Copy this JSON to persist your changes.</p>
                     <Textarea
                         readOnly
-                        value={JSON.stringify(config, null, 2)}
+                        value={JSON.stringify(cleanedConfig, null, 2)}
                         className="h-full w-full bg-muted rounded-md text-sm resize-none"
                         wrap="off"
                     />
@@ -133,7 +151,7 @@ export function JsonExportDialog({ showJsonExport, setShowJsonExport, config }: 
                         size="sm" 
                         className="absolute top-12 right-6"
                         onClick={() => {
-                            navigator.clipboard.writeText(JSON.stringify(config, null, 2));
+                            navigator.clipboard.writeText(JSON.stringify(cleanedConfig, null, 2));
                             toast({ title: "Copied to clipboard!" });
                         }}
                     >

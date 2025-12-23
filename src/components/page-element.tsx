@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { LucideIcon } from '@/lib/icons';
 import { cn } from '@/lib/utils';
-import type { PageElement } from '@/lib/types';
+import { PageElement, ElementType } from '@/lib/types';
 import { GripVertical } from 'lucide-react';
 
 interface PageElementProps {
@@ -65,7 +65,7 @@ export const PageElementComponent: React.FC<PageElementProps> = ({
           {'pointer-events-none': draggingState && !isEditMode}
       )}
   >
-    {element.type === 'button' ? (
+    {element.type === ElementType.Button ? (
       <Button 
         style={{ backgroundColor: element.color, fontSize: 'inherit', fontFamily: 'inherit' }}
         className="w-full h-full text-primary-foreground pointer-events-none"
@@ -73,11 +73,11 @@ export const PageElementComponent: React.FC<PageElementProps> = ({
           {element.icon && <LucideIcon name={element.icon} />}
           {element.text && <span>{element.text}</span>}
       </Button>
-    ) : element.type === 'text' ? (
+    ) : element.type === ElementType.Text ? (
         <div className="relative flex items-center justify-center h-full">
           <p style={{ color: element.color }}>{element.text}</p>
         </div>
-    ) : element.type === 'image' && element.src ? (
+    ) : element.type === ElementType.Image && element.src ? (
         <div className="relative w-full h-full group" style={{cursor: canDrag ? 'move' : 'default'}}>
             {isSelected && (
                 <div 
@@ -97,7 +97,7 @@ export const PageElementComponent: React.FC<PageElementProps> = ({
                 />
             )}
         </div>
-    ) : element.type === 'icon' ? (
+    ) : element.type === ElementType.Icon ? (
         <div className="relative flex items-center justify-center h-full">
             <LucideIcon name={element.icon || 'Smile'} style={{ color: element.color }} size={(element.fontSize || 16) * 1.5} />
         </div>

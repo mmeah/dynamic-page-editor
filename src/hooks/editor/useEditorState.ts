@@ -85,7 +85,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case 'UPDATE_ELEMENTS':
         const newHistory = [...state.history];
         if (!action.payload.skipHistory) {
-            newHistory.push({ elements: state.config.elements, selectedElementIds: state.selectedElementIds });
+            newHistory.push({ elements: state.config.elements, selectedElementIds: state.selectedElementIds || [] });
         }
         return { 
             ...state, 
@@ -95,21 +95,22 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case 'SET_SELECTED_ELEMENT_IDS':
         const newSelectionHistory = [...state.history];
         if (!action.payload.skipHistory) {
-            newSelectionHistory.push({ elements: state.config.elements, selectedElementIds: state.selectedElementIds });
+            newSelectionHistory.push({ elements: state.config.elements, selectedElementIds: state.selectedElementIds || [] });
         }
         return {
             ...state,
-            selectedElementIds: action.payload.selectedElementIds,
+            selectedElementIds: action.payload.selectedElementIds || [],
             history: newSelectionHistory,
         };
     case 'UNDO':
       if (state.history.length > 0) {
-        const previousState = state.history.pop();
+        const newHistory = [...state.history];
+        const previousState = newHistory.pop();
         return {
           ...state,
           config: { ...state.config, elements: previousState!.elements },
-          selectedElementIds: previousState!.selectedElementIds,
-          history: [...state.history],
+          selectedElementIds: previousState!.selectedElementIds || [],
+          history: newHistory,
         };
       }
       return state;
