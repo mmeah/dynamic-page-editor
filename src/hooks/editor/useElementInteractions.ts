@@ -105,7 +105,16 @@ export function useElementInteractions(
       if (element.url.toLowerCase() === 'back') {
         window.history.back();
       } else {
-        window.open(element.url, '_self');
+        const currentUrl = new URL(window.location.href);
+        const editorPassword = currentUrl.searchParams.get('editorPassword');
+
+        if (editorPassword) {
+            const newUrl = new URL(element.url, window.location.href);
+            newUrl.searchParams.set('editorPassword', editorPassword);
+            window.open(newUrl.toString(), '_self');
+        } else {
+            window.open(element.url, '_self');
+        }
       }
       return;
     }

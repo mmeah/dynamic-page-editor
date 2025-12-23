@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { PageElement, PageConfig } from '@/lib/types';
+import { PageElement, ElementType, PageConfig } from '@/lib/types';
 import { LucideIcon, iconList } from '@/lib/icons';
 
 export function EditElementModal({ element, onSave, onCancel, config }: { element: PageElement, onSave: (el: PageElement) => void, onCancel: () => void, config: PageConfig }) {
@@ -112,7 +112,7 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {formData.type === 'image' && (
+          {formData.type === ElementType.Image && (
             <>
               <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="src" className="text-right">Image URL</Label>
@@ -129,17 +129,17 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
             </>
           )}
 
-          {(formData.type === 'text' || formData.type === 'button') && <div className="grid grid-cols-4 items-center gap-4">
+          {(formData.type === ElementType.Text || formData.type === ElementType.Button) && <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="text" className="text-right">Text</Label>
             <Input id="text" value={formData.text || ''} onChange={e => handleChange('text', e.target.value)} className="col-span-3" />
           </div>}
           
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="url" className="text-right">Click URL</Label>
-            <Input id="url" value={formData.url || ''} onChange={e => handleChange('url', e.target.value)} className="col-span-3" placeholder={formData.type === 'text' ? "Optional: URL for navigation" : "Optional: REST API endpoint"}/>
+            <Input id="url" value={formData.url || ''} onChange={e => handleChange('url', e.target.value)} className="col-span-3" placeholder={formData.type === ElementType.Text ? "Optional: URL for navigation" : "Optional: REST API endpoint"}/>
           </div>
           
-          {(formData.type === 'button' || formData.type === 'icon') && (
+          {(formData.type === ElementType.Button || formData.type === ElementType.Icon) && (
              <div className="grid grid-cols-4 items-start gap-4">
                 <Label htmlFor="icon" className="text-right pt-2">Icon</Label>
                 <div className="col-span-3">
@@ -181,7 +181,7 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
             </div>
           )}
           
-          {(formData.type === 'text' || formData.type === 'icon' || formData.type === 'button') && 
+          {(formData.type === ElementType.Text || formData.type === ElementType.Icon || formData.type === ElementType.Button) && 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="color" className="text-right">Color</Label>
               <Input id="color" type="color" value={formData.color || '#000000'} onChange={e => handleChange('color', e.target.value)} className="col-span-3 p-1" />
@@ -189,7 +189,7 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
           }
 
 
-          {(formData.type === 'text' || formData.type === 'icon' || formData.type === 'button') && (
+          {(formData.type === ElementType.Text || formData.type === ElementType.Icon || formData.type === ElementType.Button) && (
             <>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="fontSize" className="text-right">Font Size</Label>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { PageElementComponent } from '@/components/page-element';
 import { AlignmentToolbarComponent } from '@/components/alignment-toolbar';
-import { PageConfig, PageElement, DraggingState } from '@/lib/types';
+import { PageConfig, PageElement, DraggingState, ElementType } from '@/lib/types';
 
 interface PageCanvasProps {
   mainContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -79,7 +79,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({
 
       {config.elements.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)).map(element => {
         const isSelected = isEditMode && selectedElementIds.includes(element.id);
-        const canDrag = isEditMode && (element.type !== 'image' || isSelected);
+        const canDrag = isEditMode && (element.type !== ElementType.Image || isSelected);
 
         return (
           <PageElementComponent
