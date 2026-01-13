@@ -3,7 +3,8 @@ import type { PageConfig, PageElement } from '@/lib/types';
 
 export const loadConfig = async (configFile: string, configParam: string | null): Promise<PageConfig> => {
   const load = async (file: string) => {
-    const res = await fetch(file);
+    // Always bypass cache when fetching config
+    const res = await fetch(file, { cache: 'no-store' });
     if (res.ok) return res.json();
     throw new Error(`Failed to load ${file}`);
   };
