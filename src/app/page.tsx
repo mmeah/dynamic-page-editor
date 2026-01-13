@@ -4,6 +4,7 @@
 import React from 'react';
 import { usePageEditorContext } from '@/context/page-editor-context';
 import { JsonExportDialog } from '@/components/json-export';
+import { ChromeClipboardDialog } from '@/components/ChromeClipboardDialog';
 import { ContextMenuComponent } from '@/components/context-menu';
 import { EditElementModal } from '@/components/edit-element-modal';
 import { PasswordDialogComponent } from '@/components/password-dialog';
@@ -51,6 +52,8 @@ export default function HomePage() {
     handleResizeStart,
     handleMouseMove,
     handleUndo,
+    chromeDialog,
+    closeChromeDialog,
   } = usePageEditorContext();
 
   if (!isMounted) {
@@ -121,6 +124,13 @@ export default function HomePage() {
         setShowJsonExport={setShowJsonExport}
         config={config}
       />
+      {chromeDialog?.open && (
+        <ChromeClipboardDialog
+          open={chromeDialog.open}
+          url={chromeDialog.url}
+          onClose={closeChromeDialog}
+        />
+      )}
     </div>
   );
 }

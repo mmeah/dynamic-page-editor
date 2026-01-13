@@ -1,6 +1,6 @@
 {
   "name": "nextn",
-  "version": "0.3.1-dev",
+  "version": "0.3.3-dev",
   "homepage": "https://mmeah.github.io/dynamic-page-editor",
   "private": true,
   "scripts": {
@@ -54,6 +54,7 @@
     "react": "^19.2.1",
     "react-day-picker": "^9.11.3",
     "react-dom": "^19.2.1",
+    "react-qr-code": "^2.0.18",
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
