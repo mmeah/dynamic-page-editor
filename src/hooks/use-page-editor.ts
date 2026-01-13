@@ -5,7 +5,7 @@ import { loadConfig } from '@/lib/config-service';
 import { useEditorState } from './editor/useEditorState';
 import { useAuthentication } from './editor/useAuthentication';
 import { useClipboard } from './editor/useClipboard';
-import { ChromeClipboardDialog } from '@/components/ChromeClipboardDialog';
+import { ChromeClipboardDialog } from '@/components/chrome-clipboard-dialog';
 import { useElementArrangement } from './editor/useElementArrangement';
 import { useElementInteractions } from './editor/useElementInteractions';
 import { useKeyboardShortcuts } from './editor/useKeyboardShortcuts';

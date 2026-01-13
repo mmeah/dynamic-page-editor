@@ -20,6 +20,7 @@ export interface PageElement {
   url?: string;
   src?: string; // For images
   aspectRatio?: number; // For images
+  refreshInterval?: number; // For images, in seconds
   icon?: string;
   color?: string;
   fontSize?: number;

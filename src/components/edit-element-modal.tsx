@@ -138,6 +138,10 @@ export function EditElementModal({ element, onSave, onCancel, config }: { elemen
                 {/* Hidden image to get natural dimensions for aspect ratio */}
                 {formData.src && <img src={formData.src} onLoad={updateAspectRatio} style={{display: 'none'}} alt="hidden for aspect ratio" />}
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="refreshInterval" className="text-right">Refresh Interval</Label>
+                  <Input id="refreshInterval" type="number" value={formData.refreshInterval || ''} onChange={e => handleChange('refreshInterval', parseInt(e.target.value, 10))} className="col-span-3" placeholder="in seconds, 0 = no refresh" />
+              </div>
             </>
           )}
 

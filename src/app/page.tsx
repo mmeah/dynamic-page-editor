@@ -4,7 +4,7 @@
 import React from 'react';
 import { usePageEditorContext } from '@/context/page-editor-context';
 import { JsonExportDialog } from '@/components/json-export';
-import { ChromeClipboardDialog } from '@/components/ChromeClipboardDialog';
+import { ChromeClipboardDialog } from '@/components/chrome-clipboard-dialog';
 import { ContextMenuComponent } from '@/components/context-menu';
 import { EditElementModal } from '@/components/edit-element-modal';
 import { PasswordDialogComponent } from '@/components/password-dialog';
