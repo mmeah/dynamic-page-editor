@@ -5,6 +5,7 @@ import { loadConfig } from '@/lib/config-service';
 import { useEditorState } from './editor/useEditorState';
 import { useAuthentication } from './editor/useAuthentication';
 import { useClipboard } from './editor/useClipboard';
+import { ChromeClipboardDialog } from '@/components/ChromeClipboardDialog';
 import { useElementArrangement } from './editor/useElementArrangement';
 import { useElementInteractions } from './editor/useElementInteractions';
 import { useKeyboardShortcuts } from './editor/useKeyboardShortcuts';
@@ -76,7 +77,7 @@ export function usePageEditor() {
   
   const { alignElements, reorderElement } = useElementArrangement(state, dispatch, getElementRect, closeContextMenu);
 
-  const { handleCopy, handlePaste, handleSelectAll } = useClipboard(state, dispatch);
+  const { handleCopy, handlePaste, handleSelectAll, chromeDialog, closeChromeDialog } = useClipboard(state, dispatch);
 
   const handleUndo = React.useCallback(() => {
     dispatch({ type: 'UNDO' });
@@ -111,5 +112,7 @@ export function usePageEditor() {
     handleResizeStart,
     handleMouseMove,
     handleUndo,
+    chromeDialog,
+    closeChromeDialog,
   };
 }

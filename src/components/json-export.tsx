@@ -110,24 +110,28 @@ export function JsonExportDialog({ showJsonExport, setShowJsonExport, config }: 
   
   return (
     <Dialog open={showJsonExport} onOpenChange={setShowJsonExport}>
-        <DialogContent 
-            ref={dialogRef}
-            className="p-0 shadow-lg"
-            style={{
-                width: `${size.width}px`,
-                height: `${size.height}px`,
-                top: `${position.y}px`,
-                left: `${position.x}px`,
-                transform: 'none', // Override default centering
-                position: 'fixed'
-            }}
-            onMouseDown={(e:any) => e.stopPropagation()} // Prevent dialog closing on content click
-            onKeyDown={(e) => {
-                // Stop propagation for copy and select all events to prevent global shortcuts from firing
-                if ((e.metaKey || e.ctrlKey) && (e.key === 'c' || e.key === 'a')) {
-                    e.stopPropagation();
-                }
-            }}
+    <DialogContent 
+      ref={dialogRef}
+      className="p-0 shadow-lg"
+      style={{
+        width: `${size.width}px`,
+        height: `${size.height}px`,
+        top: `${position.y}px`,
+        left: `${position.x}px`,
+        transform: 'none', // Override default centering
+        position: 'fixed'
+      }}
+      onMouseDown={(e:any) => e.stopPropagation()} // Prevent dialog closing on content click
+      onKeyDown={(e) => {
+        // Stop propagation for copy and select all events to prevent global shortcuts from firing
+        if ((e.metaKey || e.ctrlKey) && (e.key === 'c' || e.key === 'a')) {
+          e.stopPropagation();
+        }
+      }}
+      onCopy={e => {
+        // Prevent copy event from bubbling up and triggering global copy logic
+        e.stopPropagation();
+      }}
         >
             <div className="flex flex-col h-full">
                 <DialogHeader 

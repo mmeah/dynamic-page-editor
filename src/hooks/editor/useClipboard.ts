@@ -6,20 +6,57 @@ import { PageElement } from '@/lib/types';
 
 export function useClipboard(
   state: EditorState,
-  dispatch: React.Dispatch<EditorAction>,
+  dispatch: React.Dispatch<EditorAction>
 ) {
+  // Local dialog state for showing the Chrome link
+  const [chromeDialog, setChromeDialog] = React.useState<{ open: boolean, url: string } | null>(null);
   const { toast } = useToast();
   const { selectedElementIds, config } = state;
   const clipboardRef = React.useRef<PageElement[]>([]);
 
-  const handleCopy = React.useCallback(() => {
-    if (selectedElementIds.length > 0) {
-      const selectedElements = config.elements.filter(el => selectedElementIds.includes(el.id));
-      clipboardRef.current = selectedElements;
-      navigator.clipboard.writeText(JSON.stringify(selectedElements, null, 2));
-      toast({ title: `Copied ${selectedElementIds.length} element(s) to clipboard` });
+  const showPermissionErrorToast = React.useCallback(() => {
+    const isChrome = navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg');
+    let description = "Please allow clipboard access in your browser settings.";
+    let onClick;
+
+    if (isChrome && typeof window !== 'undefined') {
+      const site = window.location.origin;
+      const chromeUrl = `chrome://settings/content/siteDetails?site=${site}`;
+      description = `For Chrome, please click this message to open settings. ${chromeUrl}`;
+      onClick = () => {
+        setChromeDialog({ open: true, url: chromeUrl });
+      };
     }
-  }, [selectedElementIds, config.elements, toast]);
+
+    toast({
+      variant: "destructive",
+      title: "Clipboard permission denied",
+      description: description,
+      duration: 30000,
+      onClick,
+    });
+  }, [toast]);
+
+  const handleCopy = React.useCallback(async () => {
+    if (selectedElementIds.length > 0) {
+      try {
+        const selectedElements = config.elements.filter(el => selectedElementIds.includes(el.id));
+        clipboardRef.current = selectedElements;
+        await navigator.clipboard.writeText(JSON.stringify(selectedElements, null, 2));
+        toast({ title: `Copied ${selectedElementIds.length} element(s) to clipboard` });
+      } catch (error: any) {
+        if (error.name === 'NotAllowedError') {
+          showPermissionErrorToast();
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Copy failed",
+            description: "Could not copy elements to clipboard.",
+          });
+        }
+      }
+    }
+  }, [selectedElementIds, config.elements, toast, showPermissionErrorToast]);
 
   const handlePaste = React.useCallback(async (mousePosition: { x: number, y: number }) => {
     try {
@@ -56,24 +93,31 @@ export function useClipboard(
         dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: newElementsIds } });
         toast({ title: `Pasted ${newElements.length} element(s)` });
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'NotAllowedError') {
+        showPermissionErrorToast();
+      } else {
         console.error("Failed to paste from clipboard:", error);
         toast({
             variant: "destructive",
             title: "Paste failed",
             description: "Could not paste from clipboard. The content may not be valid.",
         });
+      }
     }
-  }, [config.elements, dispatch, toast]);
+  }, [config.elements, dispatch, toast, showPermissionErrorToast]);
 
   const handleSelectAll = React.useCallback(() => {
     const allElementIds = config.elements.map(el => el.id);
     dispatch({ type: 'SET_SELECTED_ELEMENT_IDS', payload: { selectedElementIds: allElementIds } });
   }, [config.elements, dispatch]);
 
+  // Instead of returning JSX, return dialog state and close handler
   return {
     handleCopy,
     handlePaste,
     handleSelectAll,
+    chromeDialog,
+    closeChromeDialog: () => setChromeDialog(null),
   };
 }
