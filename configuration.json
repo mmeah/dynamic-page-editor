@@ -1,6 +1,6 @@
 {
   "editorPassword": "1234",
-  "defaultRestUrl": "http://test.org/cgi-bin/test.py",
+  "defaultRestUrl": "https://fake-json-api.mock.beeceptor.com/",
   "defaultImageUrl": "https://png.pngtree.com/png-vector/20190223/ourmid/pngtree-vector-picture-icon-png-image_695350.jpg",
   "favicon": "",
   "elements": [
@@ -16,8 +16,7 @@
       "aspectRatio": 1,
       "color": "#87CEEB",
       "fontSize": 16,
-      "fontFamily": "'PT Sans', sans-serif",
-      "status": "idle"
+      "fontFamily": "'PT Sans', sans-serif"
     },
     {
       "id": "page-title",
@@ -28,7 +27,6 @@
       "fontSize": 36,
       "fontFamily": "'Poppins', sans-serif",
       "zIndex": 2,
-      "status": "idle",
       "url": "https://example.com/"
     },
     {
@@ -41,7 +39,6 @@
       "color": "#169c2d",
       "fontSize": 23,
       "fontFamily": "'PT Sans', sans-serif",
-      "status": "idle",
       "zIndex": 3,
       "url": "http://test.com?test=true"
     },
@@ -56,8 +53,7 @@
       "url": "https://fake-json-api.mock.beeceptor.com/companies",
       "color": "#87CEEB",
       "fontSize": 16,
-      "fontFamily": "'PT Sans', sans-serif",
-      "status": "idle"
+      "fontFamily": "'PT Sans', sans-serif"
     },
     {
       "id": "17650662222360.12479789285956133",
@@ -70,8 +66,7 @@
       "url": "https://fake-json-api.mock.beeceptor.com/users",
       "color": "#87CEEB",
       "fontSize": 16,
-      "fontFamily": "'PT Sans', sans-serif",
-      "status": "idle"
+      "fontFamily": "'PT Sans', sans-serif"
     },
     {
       "id": "17650662450390.3838796613451906",
@@ -84,8 +79,33 @@
       "url": "http://test.org/cgi-bin/test.py?123",
       "color": "#87CEEB",
       "fontSize": 16,
-      "fontFamily": "Georgia, serif",
-      "status": "idle"
+      "fontFamily": "Georgia, serif"
+    },
+    {
+      "id": "17683211988800.3903404795192912",
+      "type": "image",
+      "x": 96,
+      "y": 393,
+      "zIndex": 7,
+      "src": "https://picsum.photos/300/200.jpg",
+      "width": 150,
+      "height": 100,
+      "aspectRatio": 1.5,
+      "color": "#87CEEB",
+      "fontSize": 16,
+      "fontFamily": "'PT Sans', sans-serif"
+    },
+    {
+      "id": "1768321238580",
+      "type": "text",
+      "x": 96,
+      "y": 480,
+      "zIndex": 8,
+      "text": "Dynamic Image that refreshes every few seconds",
+      "url": "https://picsum.photos/",
+      "color": "#000000",
+      "fontSize": 16,
+      "fontFamily": "'PT Sans', sans-serif"
     }
   ]
 }
